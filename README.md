@@ -123,9 +123,10 @@ java -cp "out:lib/mysql-connector-j-9.4.0.jar" TestConnection
 
 ---
 
-Contributors
-@aditiaingnurkar
-@ankitanahire
-@Jui-baviskar
-@bhoomishekapure
+## Contributors
+- Aditi Singnurkar – @aditisingnurkar
+- Jui Baviskar – @Jui-baviskar
+- Ankita Nahire – @ankitanahire
+- Bhoomi Shekapure - @bhoomishekapure
+
 
