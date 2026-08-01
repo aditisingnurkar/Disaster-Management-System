@@ -2,7 +2,7 @@
 
 A Java Swing desktop application for coordinating disaster response operations. The system manages disasters, victims, shelters, volunteers, resources, shelter inventory, and incident reports using a MySQL database backend.
 
-**Demo Video:** [https://your-demo-link-here](https://drive.google.com/file/d/1cFpz6FmkIeaVo-H-PHHhfl2engojQXx-/view)
+**Demo Video:** [](https://drive.google.com/file/d/1cFpz6FmkIeaVo-H-PHHhfl2engojQXx-/view)
 
 ---
 
@@ -125,8 +125,8 @@ java -cp "out:lib/mysql-connector-j-9.4.0.jar" TestConnection
 
 ## Contributors
 
-* **@aditisingnurkar**
-* **@ankitanahire**
-* **@Jui-baviskar**
-* **@bhoomishekapure**
+* @aditisingnurkar
+* @ankitanahire
+* @Jui-baviskar
+* @bhoomishekapure
 
