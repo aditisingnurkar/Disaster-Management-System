@@ -1,402 +1,392 @@
 import javax.swing.*;
-import javax.swing.border.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.*;
-import java.sql.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.List;
 
 public class VictimUI extends JFrame {
-    private JTextField addIdField, addNameField, addAgeField, addContactField, addDisasterField, addShelterField;
-    private JTextField updateIdField, deleteIdField;
-    private JTextArea outputArea;
-    private Connection con;
 
-    // Modern color scheme
-    private final Color PRIMARY_BLUE = new Color(30, 58, 138);
-    private final Color LIGHT_BG = new Color(249, 250, 251);
-    private final Color CARD_BG = Color.WHITE;
-    private final Color ORANGE = new Color(249, 115, 22);
-    private final Color RED = new Color(239, 68, 68);
-    private final Color BLUE_BTN = new Color(37, 99, 235);
-    private final Color BORDER_COLOR = new Color(229, 231, 235);
+    private JTextField idField, nameField, ageField, contactField, medicalField, searchField;
+    private JComboBox<String> genderCombo;
+    private JComboBox<ComboItem> disasterCombo;
+    private JComboBox<ComboItem> shelterCombo;
+    private JTable table;
+    private DefaultTableModel tableModel;
 
     public VictimUI() {
-        setTitle("Victim Management System");
-        setSize(1400, 800);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setTitle("Victim Management - Affected Persons Registry");
+        setSize(1250, 750);
         setLocationRelativeTo(null);
-
-        try {
-            con = DatabaseConnection.getConnection();
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Database connection failed!");
-            e.printStackTrace();
-            return;
-        }
-
-        // Main container with light background
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(LIGHT_BG);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout());
 
         // Header
-        JPanel header = createHeader();
-        mainPanel.add(header, BorderLayout.NORTH);
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(UITheme.PRIMARY_DARK);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 25, 15, 25));
 
-        // Content area
-        JPanel contentPanel = new JPanel(new BorderLayout(15, 15));
-        contentPanel.setBackground(LIGHT_BG);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        // Top section with three cards
-        JPanel cardsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
-        cardsPanel.setBackground(LIGHT_BG);
-        cardsPanel.setPreferredSize(new Dimension(1400, 320));
-
-        cardsPanel.add(createAddCard());
-        cardsPanel.add(createUpdateCard());
-        cardsPanel.add(createDeleteCard());
-
-        contentPanel.add(cardsPanel, BorderLayout.NORTH);
-
-        // Bottom section - Display area
-        JPanel displayPanel = createDisplayPanel();
-        contentPanel.add(displayPanel, BorderLayout.CENTER);
-
-        mainPanel.add(contentPanel, BorderLayout.CENTER);
-        add(mainPanel);
-    }
-
-    private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(PRIMARY_BLUE);
-        header.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
-
-        JPanel textPanel = new JPanel(new GridLayout(2, 1, 0, 5));
-        textPanel.setBackground(PRIMARY_BLUE);
-
-        JLabel titleLabel = new JLabel("🧍 Victim Management System");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        JLabel titleLabel = new JLabel("🧍 Victim Records & Shelter Allocation");
+        titleLabel.setFont(UITheme.FONT_TITLE);
         titleLabel.setForeground(Color.WHITE);
 
-        JLabel subtitleLabel = new JLabel("Manage and track victim records efficiently");
-        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        subtitleLabel.setForeground(new Color(191, 219, 254));
+        JLabel subtitleLabel = new JLabel("Register affected individuals, track medical conditions, and assign emergency shelters");
+        subtitleLabel.setFont(UITheme.FONT_BODY);
+        subtitleLabel.setForeground(new Color(203, 213, 225));
 
-        textPanel.add(titleLabel);
-        textPanel.add(subtitleLabel);
-        header.add(textPanel, BorderLayout.WEST);
+        JPanel titleBox = new JPanel(new GridLayout(2, 1, 0, 4));
+        titleBox.setOpaque(false);
+        titleBox.add(titleLabel);
+        titleBox.add(subtitleLabel);
+        headerPanel.add(titleBox, BorderLayout.WEST);
+        add(headerPanel, BorderLayout.NORTH);
 
-        return header;
-    }
+        // Center Content
+        JPanel contentPanel = new JPanel(new BorderLayout(15, 15));
+        contentPanel.setBackground(UITheme.BG_LIGHT);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-    private JPanel createAddCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(59, 130, 246), 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
+        // Left Form Card
+        JPanel formCard = UITheme.createCard("Victim Record Details", UITheme.PRIMARY_DARK);
+        formCard.setPreferredSize(new Dimension(420, 0));
 
-        JLabel titleLabel = new JLabel("Add New Victim Record");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(new Color(59, 130, 246));
+        JPanel formGrid = new JPanel(new GridLayout(8, 2, 8, 10));
+        formGrid.setOpaque(false);
 
-        JPanel formPanel = new JPanel(new GridLayout(6, 2, 10, 12));
-        formPanel.setBackground(CARD_BG);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
+        idField = UITheme.createTextField();
+        idField.setEditable(false);
+        idField.setBackground(new Color(241, 245, 249));
 
-        addIdField = new JTextField();
-        addNameField = new JTextField();
-        addAgeField = new JTextField();
-        addContactField = new JTextField();
-        addDisasterField = new JTextField();
-        addShelterField = new JTextField();
+        nameField = UITheme.createTextField();
+        ageField = UITheme.createTextField();
+        contactField = UITheme.createTextField();
+        medicalField = UITheme.createTextField();
 
-        addFormField(formPanel, "Victim ID:", addIdField);
-        addFormField(formPanel, "Name:", addNameField);
-        addFormField(formPanel, "Age:", addAgeField);
-        addFormField(formPanel, "Contact:", addContactField);
-        addFormField(formPanel, "Disaster ID:", addDisasterField);
-        addFormField(formPanel, "Shelter ID:", addShelterField);
+        genderCombo = new JComboBox<>(new String[]{"Male", "Female", "Other"});
+        genderCombo.setFont(UITheme.FONT_BODY);
+        genderCombo.setBackground(Color.WHITE);
 
-        // Wrap form panel in scroll pane
-        JScrollPane scrollPane = new JScrollPane(formPanel);
-        scrollPane.setBorder(null);
-        scrollPane.setBackground(CARD_BG);
-        scrollPane.getViewport().setBackground(CARD_BG);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        disasterCombo = UITheme.createComboBox();
+        shelterCombo = UITheme.createComboBox();
 
-        JButton addBtn = createStyledButton("➕ Add Record", BLUE_BTN);
-        addBtn.addActionListener(e -> insertVictim());
+        formGrid.add(new JLabel("Victim ID:"));
+        formGrid.add(idField);
+        formGrid.add(new JLabel("Full Name:"));
+        formGrid.add(nameField);
+        formGrid.add(new JLabel("Age:"));
+        formGrid.add(ageField);
+        formGrid.add(new JLabel("Gender:"));
+        formGrid.add(genderCombo);
+        formGrid.add(new JLabel("Contact Number:"));
+        formGrid.add(contactField);
+        formGrid.add(new JLabel("Medical Condition:"));
+        formGrid.add(medicalField);
+        formGrid.add(new JLabel("Disaster Event [FK]:"));
+        formGrid.add(disasterCombo);
+        formGrid.add(new JLabel("Assigned Shelter [FK]:"));
+        formGrid.add(shelterCombo);
 
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(scrollPane, BorderLayout.CENTER);
-        card.add(addBtn, BorderLayout.SOUTH);
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 8, 8));
+        buttonPanel.setOpaque(false);
 
-        return card;
-    }
+        JButton addBtn = UITheme.createPrimaryButton("➕ Add Victim", UITheme.ACCENT_BLUE, UITheme.ACCENT_HOVER);
+        JButton updateBtn = UITheme.createPrimaryButton("✏ Update", UITheme.WARNING_ORANGE, new Color(217, 119, 6));
+        JButton deleteBtn = UITheme.createPrimaryButton("🗑 Delete", UITheme.DANGER_RED, UITheme.DANGER_HOVER);
+        JButton clearBtn = UITheme.createPrimaryButton("🔄 Clear Form", new Color(100, 116, 139), new Color(71, 85, 105));
 
-    private JPanel createUpdateCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(ORANGE, 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
+        addBtn.addActionListener(e -> addRecord());
+        updateBtn.addActionListener(e -> updateRecord());
+        deleteBtn.addActionListener(e -> deleteRecord());
+        clearBtn.addActionListener(e -> clearForm());
 
-        JLabel titleLabel = new JLabel("Update Record");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(ORANGE);
+        buttonPanel.add(addBtn);
+        buttonPanel.add(updateBtn);
+        buttonPanel.add(deleteBtn);
+        buttonPanel.add(clearBtn);
 
-        JPanel formPanel = new JPanel(new GridLayout(1, 2, 10, 0));
-        formPanel.setBackground(CARD_BG);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 40, 0));
+        JPanel formWrapper = new JPanel(new BorderLayout(0, 15));
+        formWrapper.setOpaque(false);
+        formWrapper.add(formGrid, BorderLayout.NORTH);
+        formWrapper.add(buttonPanel, BorderLayout.SOUTH);
 
-        updateIdField = new JTextField();
-        addFormField(formPanel, "Victim ID:", updateIdField);
+        formCard.add(formWrapper, BorderLayout.CENTER);
+        contentPanel.add(formCard, BorderLayout.WEST);
 
-        JPanel buttonPanel = new JPanel(new GridLayout(2, 1, 0, 10));
-        buttonPanel.setBackground(CARD_BG);
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
+        // Right Table Card
+        JPanel tableCard = UITheme.createCard("Victim Directory", UITheme.PRIMARY_DARK);
 
-        JButton updateAgeBtn = createStyledButton("🔄 Update Age", ORANGE);
-        JButton updateContactBtn = createStyledButton("🔄 Update Contact", ORANGE);
+        // Search Bar
+        JPanel searchBar = new JPanel(new BorderLayout(8, 0));
+        searchBar.setOpaque(false);
+        searchField = UITheme.createTextField();
+        JButton searchBtn = UITheme.createPrimaryButton("🔍 Search", UITheme.PRIMARY_DARK, UITheme.PRIMARY_NAVY);
+        JButton resetBtn = UITheme.createPrimaryButton("Show All", new Color(100, 116, 139), new Color(71, 85, 105));
 
-        updateAgeBtn.addActionListener(e -> updateVictimAge());
-        updateContactBtn.addActionListener(e -> updateVictimContact());
+        searchBtn.addActionListener(e -> searchRecords());
+        resetBtn.addActionListener(e -> { searchField.setText(""); loadData(); });
 
-        buttonPanel.add(updateAgeBtn);
-        buttonPanel.add(updateContactBtn);
+        JPanel searchBtnBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        searchBtnBox.setOpaque(false);
+        searchBtnBox.add(searchBtn);
+        searchBtnBox.add(resetBtn);
 
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(formPanel, BorderLayout.CENTER);
-        card.add(buttonPanel, BorderLayout.SOUTH);
+        searchBar.add(new JLabel("Search Victims: "), BorderLayout.WEST);
+        searchBar.add(searchField, BorderLayout.CENTER);
+        searchBar.add(searchBtnBox, BorderLayout.EAST);
 
-        return card;
-    }
+        // Table
+        String[] columns = {"ID", "Name", "Age", "Gender", "Contact", "Medical Condition", "Disaster ID", "Shelter ID"};
+        tableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+        table = new JTable(tableModel);
+        UITheme.styleTable(table);
 
-    private JPanel createDeleteCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(RED, 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = table.getSelectedRow();
+                if (row >= 0) {
+                    idField.setText(tableModel.getValueAt(row, 0).toString());
+                    nameField.setText(tableModel.getValueAt(row, 1).toString());
+                    ageField.setText(tableModel.getValueAt(row, 2).toString());
+                    genderCombo.setSelectedItem(tableModel.getValueAt(row, 3).toString());
+                    Object contactVal = tableModel.getValueAt(row, 4);
+                    contactField.setText(contactVal != null ? contactVal.toString() : "");
+                    medicalField.setText(tableModel.getValueAt(row, 5).toString());
+                    int disId = Integer.parseInt(tableModel.getValueAt(row, 6).toString());
+                    selectDisasterInCombo(disId);
 
-        JLabel titleLabel = new JLabel("Delete Record");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(RED);
-
-        JPanel formPanel = new JPanel(new GridLayout(1, 2, 10, 0));
-        formPanel.setBackground(CARD_BG);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 40, 0));
-
-        deleteIdField = new JTextField();
-        addFormField(formPanel, "Victim ID:", deleteIdField);
-
-        JButton deleteBtn = createStyledButton("🗑️ Delete Record", RED);
-        deleteBtn.addActionListener(e -> deleteVictim());
-        deleteBtn.setBorder(BorderFactory.createEmptyBorder(12, 0, 12, 0));
-
-        JPanel btnWrapper = new JPanel(new BorderLayout());
-        btnWrapper.setBackground(CARD_BG);
-        btnWrapper.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
-        btnWrapper.add(deleteBtn, BorderLayout.CENTER);
-
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(formPanel, BorderLayout.CENTER);
-        card.add(btnWrapper, BorderLayout.SOUTH);
-
-        return card;
-    }
-
-    private JPanel createDisplayPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 15));
-        panel.setBackground(CARD_BG);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(CARD_BG);
-
-        JLabel titleLabel = new JLabel("Victim Records");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        titleLabel.setForeground(new Color(30, 58, 138));
-
-        JButton refreshBtn = createStyledButton("🔄 Refresh Records", BLUE_BTN);
-        refreshBtn.addActionListener(e -> displayVictims());
-        refreshBtn.setPreferredSize(new Dimension(200, 40));
-
-        headerPanel.add(titleLabel, BorderLayout.WEST);
-        headerPanel.add(refreshBtn, BorderLayout.EAST);
-
-        outputArea = new JTextArea();
-        outputArea.setEditable(false);
-        outputArea.setFont(new Font("Consolas", Font.PLAIN, 13));
-        outputArea.setBackground(new Color(249, 250, 251));
-        outputArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        JScrollPane scrollPane = new JScrollPane(outputArea);
-        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
-
-        panel.add(headerPanel, BorderLayout.NORTH);
-        panel.add(scrollPane, BorderLayout.CENTER);
-
-        return panel;
-    }
-
-    private void addFormField(JPanel panel, String label, JTextField field) {
-        JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lbl.setForeground(new Color(55, 65, 81));
-
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        field.setForeground(Color.BLACK);
-        field.setBackground(Color.WHITE);
-        field.setCaretColor(Color.BLACK);
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(8, 10, 8, 10)
-        ));
-
-        panel.add(lbl);
-        panel.add(field);
-    }
-
-    private JButton createStyledButton(String text, Color bgColor) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setForeground(Color.WHITE);
-        btn.setBackground(bgColor);
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
-
-        btn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                btn.setBackground(bgColor.darker());
-            }
-            public void mouseExited(MouseEvent e) {
-                btn.setBackground(bgColor);
+                    Object shelterVal = tableModel.getValueAt(row, 7);
+                    if (shelterVal != null && !shelterVal.toString().equals("None")) {
+                        selectShelterInCombo(Integer.parseInt(shelterVal.toString()));
+                    } else {
+                        shelterCombo.setSelectedIndex(0); // None
+                    }
+                }
             }
         });
 
-        return btn;
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_GRAY));
+
+        JPanel tableContainer = new JPanel(new BorderLayout(0, 10));
+        tableContainer.setOpaque(false);
+        tableContainer.add(searchBar, BorderLayout.NORTH);
+        tableContainer.add(scrollPane, BorderLayout.CENTER);
+
+        tableCard.add(tableContainer, BorderLayout.CENTER);
+        contentPanel.add(tableCard, BorderLayout.CENTER);
+
+        add(contentPanel, BorderLayout.CENTER);
+
+        loadCombos();
+        loadData();
     }
 
-    private void insertVictim() {
-        try {
-            PreparedStatement pst = con.prepareStatement("INSERT INTO Victim VALUES (?, ?, ?, ?, ?, ?)");
-            pst.setInt(1, Integer.parseInt(addIdField.getText()));
-            pst.setString(2, addNameField.getText());
-            pst.setInt(3, Integer.parseInt(addAgeField.getText()));
-            pst.setString(4, addContactField.getText());
-            pst.setInt(5, Integer.parseInt(addDisasterField.getText()));
-            pst.setInt(6, Integer.parseInt(addShelterField.getText()));
-            pst.executeUpdate();
-            JOptionPane.showMessageDialog(this, "✅ Victim inserted successfully!");
-            clearAddFields();
-            displayVictims();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error: " + ex.getMessage());
-        }
-    }
+    private void loadCombos() {
+        disasterCombo.removeAllItems();
+        shelterCombo.removeAllItems();
 
-    private void displayVictims() {
         try {
-            Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery("SELECT * FROM Victim");
-            outputArea.setText(String.format("%-10s %-20s %-8s %-15s %-12s %-12s\n",
-                    "Victim_ID", "Name", "Age", "Contact", "Disaster_ID", "Shelter_ID"));
-            outputArea.append("─".repeat(90) + "\n");
-            while (rs.next()) {
-                outputArea.append(String.format("%-10d %-20s %-8d %-15s %-12d %-12d\n",
-                        rs.getInt(1), rs.getString(2), rs.getInt(3),
-                        rs.getString(4), rs.getInt(5), rs.getInt(6)));
+            List<ComboItem> disasters = DisasterDAO.getComboItems();
+            for (ComboItem item : disasters) {
+                disasterCombo.addItem(item);
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error displaying victims!");
+
+            shelterCombo.addItem(new ComboItem(0, "0: None / Field Evacuation"));
+            List<ComboItem> shelters = ShelterDAO.getComboItems();
+            for (ComboItem item : shelters) {
+                shelterCombo.addItem(item);
+            }
+        } catch (Exception e) {
+            System.err.println("Error loading dropdown combos: " + e.getMessage());
         }
     }
 
-    private void updateVictimAge() {
-        String id = updateIdField.getText();
-        if (id.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please enter Victim ID!");
+    private void selectDisasterInCombo(int disasterId) {
+        for (int i = 0; i < disasterCombo.getItemCount(); i++) {
+            ComboItem item = disasterCombo.getItemAt(i);
+            if (item != null && item.getId() == disasterId) {
+                disasterCombo.setSelectedIndex(i);
+                break;
+            }
+        }
+    }
+
+    private void selectShelterInCombo(int shelterId) {
+        for (int i = 0; i < shelterCombo.getItemCount(); i++) {
+            ComboItem item = shelterCombo.getItemAt(i);
+            if (item != null && item.getId() == shelterId) {
+                shelterCombo.setSelectedIndex(i);
+                break;
+            }
+        }
+    }
+
+    private void loadData() {
+        tableModel.setRowCount(0);
+        try {
+            List<Victim> list = VictimDAO.getAll();
+            for (Victim v : list) {
+                tableModel.addRow(new Object[]{
+                        v.getVictimId(),
+                        v.getName(),
+                        v.getAge(),
+                        v.getGender(),
+                        v.getContactNumber() != null ? v.getContactNumber() : "-",
+                        v.getMedicalCondition(),
+                        v.getDisasterId(),
+                        v.getShelterId() != null ? v.getShelterId() : "None"
+                });
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error loading victims: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void searchRecords() {
+        String kw = searchField.getText().trim();
+        if (kw.isEmpty()) { loadData(); return; }
+
+        tableModel.setRowCount(0);
+        try {
+            List<Victim> list = VictimDAO.search(kw);
+            for (Victim v : list) {
+                tableModel.addRow(new Object[]{
+                        v.getVictimId(),
+                        v.getName(),
+                        v.getAge(),
+                        v.getGender(),
+                        v.getContactNumber() != null ? v.getContactNumber() : "-",
+                        v.getMedicalCondition(),
+                        v.getDisasterId(),
+                        v.getShelterId() != null ? v.getShelterId() : "None"
+                });
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error searching: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void addRecord() {
+        try {
+            String name = nameField.getText().trim();
+            String ageStr = ageField.getText().trim();
+            String gender = (String) genderCombo.getSelectedItem();
+            String contact = contactField.getText().trim();
+            String medical = medicalField.getText().trim();
+            ComboItem selectedDisaster = (ComboItem) disasterCombo.getSelectedItem();
+            ComboItem selectedShelter = (ComboItem) shelterCombo.getSelectedItem();
+
+            if (name.isEmpty() || ageStr.isEmpty() || selectedDisaster == null) {
+                JOptionPane.showMessageDialog(this, "Please fill in Name, Age, and select a Disaster.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            int age = Integer.parseInt(ageStr);
+            if (age < 0 || age > 125) {
+                JOptionPane.showMessageDialog(this, "Age must be between 0 and 125.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            Integer shelterId = (selectedShelter != null && selectedShelter.getId() > 0) ? selectedShelter.getId() : null;
+            if (medical.isEmpty()) medical = "Normal / None";
+
+            Victim v = new Victim(name, age, gender, contact.isEmpty() ? null : contact, medical, selectedDisaster.getId(), shelterId);
+            if (VictimDAO.insert(v)) {
+                JOptionPane.showMessageDialog(this, "Victim record registered successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                clearForm();
+                loadData();
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Age must be a valid number.", "Invalid Number", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error adding victim: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void updateRecord() {
+        String idStr = idField.getText().trim();
+        if (idStr.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please select a victim from the table to update.", "Selection Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        String newAge = JOptionPane.showInputDialog(this, "Enter new Age:");
-        if (newAge == null || newAge.isEmpty()) return;
 
         try {
-            PreparedStatement pst = con.prepareStatement("UPDATE Victim SET age = ? WHERE victim_id = ?");
-            pst.setInt(1, Integer.parseInt(newAge));
-            pst.setInt(2, Integer.parseInt(id));
-            int rows = pst.executeUpdate();
-            JOptionPane.showMessageDialog(this, rows > 0 ? "✅ Age updated!" : "❌ Victim not found!");
-            if (rows > 0) displayVictims();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error updating age!");
+            int id = Integer.parseInt(idStr);
+            String name = nameField.getText().trim();
+            String ageStr = ageField.getText().trim();
+            String gender = (String) genderCombo.getSelectedItem();
+            String contact = contactField.getText().trim();
+            String medical = medicalField.getText().trim();
+            ComboItem selectedDisaster = (ComboItem) disasterCombo.getSelectedItem();
+            ComboItem selectedShelter = (ComboItem) shelterCombo.getSelectedItem();
+
+            if (name.isEmpty() || ageStr.isEmpty() || selectedDisaster == null) {
+                JOptionPane.showMessageDialog(this, "Please fill in Name, Age, and select a Disaster.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            int age = Integer.parseInt(ageStr);
+            if (age < 0 || age > 125) {
+                JOptionPane.showMessageDialog(this, "Age must be between 0 and 125.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            Integer shelterId = (selectedShelter != null && selectedShelter.getId() > 0) ? selectedShelter.getId() : null;
+            if (medical.isEmpty()) medical = "Normal / None";
+
+            Victim v = new Victim(id, name, age, gender, contact.isEmpty() ? null : contact, medical, selectedDisaster.getId(), shelterId);
+            if (VictimDAO.update(v)) {
+                JOptionPane.showMessageDialog(this, "Victim record updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                clearForm();
+                loadData();
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error updating victim: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void updateVictimContact() {
-        String id = updateIdField.getText();
-        if (id.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please enter Victim ID!");
-            return;
-        }
-        String newContact = JOptionPane.showInputDialog(this, "Enter new Contact:");
-        if (newContact == null || newContact.isEmpty()) return;
-
-        try {
-            PreparedStatement pst = con.prepareStatement("UPDATE Victim SET contact = ? WHERE victim_id = ?");
-            pst.setString(1, newContact);
-            pst.setInt(2, Integer.parseInt(id));
-            int rows = pst.executeUpdate();
-            JOptionPane.showMessageDialog(this, rows > 0 ? "✅ Contact updated!" : "❌ Victim not found!");
-            if (rows > 0) displayVictims();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error updating contact!");
-        }
-    }
-
-    private void deleteVictim() {
-        String id = deleteIdField.getText();
-        if (id.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please enter Victim ID!");
+    private void deleteRecord() {
+        String idStr = idField.getText().trim();
+        if (idStr.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please select a victim from the table to delete.", "Selection Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Are you sure you want to delete Victim ID: " + id + "?",
-                "Confirm Delete", JOptionPane.YES_NO_OPTION);
+                "Are you sure you want to delete Victim ID " + idStr + "?",
+                "Confirm Deletion", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
-        if (confirm != JOptionPane.YES_OPTION) return;
-
-        try {
-            PreparedStatement pst = con.prepareStatement("DELETE FROM Victim WHERE victim_id = ?");
-            pst.setInt(1, Integer.parseInt(id));
-            int rows = pst.executeUpdate();
-            JOptionPane.showMessageDialog(this, rows > 0 ? "🗑️ Deleted successfully!" : "❌ Victim not found!");
-            if (rows > 0) {
-                deleteIdField.setText("");
-                displayVictims();
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                int id = Integer.parseInt(idStr);
+                if (VictimDAO.delete(id)) {
+                    JOptionPane.showMessageDialog(this, "Victim deleted successfully.", "Deleted", JOptionPane.INFORMATION_MESSAGE);
+                    clearForm();
+                    loadData();
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error deleting victim: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error deleting victim!");
         }
     }
 
-    private void clearAddFields() {
-        addIdField.setText("");
-        addNameField.setText("");
-        addAgeField.setText("");
-        addContactField.setText("");
-        addDisasterField.setText("");
-        addShelterField.setText("");
+    private void clearForm() {
+        idField.setText("");
+        nameField.setText("");
+        ageField.setText("");
+        genderCombo.setSelectedIndex(0);
+        contactField.setText("");
+        medicalField.setText("");
+        if (disasterCombo.getItemCount() > 0) disasterCombo.setSelectedIndex(0);
+        if (shelterCombo.getItemCount() > 0) shelterCombo.setSelectedIndex(0);
+        table.clearSelection();
+    }
+
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new VictimUI().setVisible(true));
     }
 }

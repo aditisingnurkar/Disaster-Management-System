@@ -1,8 +1,13 @@
+import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
+
 public class DisasterManagement {
     public static void main(String[] args) {
-        javax.swing.SwingUtilities.invokeLater(() -> {
-            new DashboardUI().setVisible(true);
+        SwingUtilities.invokeLater(() -> {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (Exception ignored) {}
+            new SplashScreen().launchApp();
         });
     }
 }
-

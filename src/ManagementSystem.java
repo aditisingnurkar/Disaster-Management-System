@@ -1,482 +1,537 @@
 import java.sql.*;
-import java.util.*;
+import java.util.List;
+import java.util.Scanner;
 
 public class ManagementSystem {
 
-    private static Connection getConnection() throws SQLException {
-        String url = "jdbc:mysql://localhost:3306/disaster_management_system";
-        String user = "root";
-        String password = "juju1234juju@2006"; // Change this to your MySQL password
-        return DriverManager.getConnection(url, user, password);
-    }
+    private static final Scanner sc = new Scanner(System.in);
 
     public static void main(String[] args) {
-        Scanner sc = new Scanner(System.in);
-        Connection con = null;
+        System.out.println("==========================================================");
+        System.out.println("   DISASTER MANAGEMENT SYSTEM - CONSOLE COMMAND CLI       ");
+        System.out.println("   (3NF Relational Architecture - MySQL 8.0 Integration)  ");
+        System.out.println("==========================================================");
+
+        boolean running = true;
+        while (running) {
+            System.out.println("\n--- MAIN MENU ---");
+            System.out.println("1.  Disaster Events Management");
+            System.out.println("2.  Relief Shelter Management");
+            System.out.println("3.  Victim Registration & Tracking");
+            System.out.println("4.  Resource Catalog Management");
+            System.out.println("5.  Shelter Inventory Allocation (Shelter ── Resource)");
+            System.out.println("6.  Volunteer Personnel Registry");
+            System.out.println("7.  Volunteer Field Assignments (Volunteer ── Disaster)");
+            System.out.println("8.  Incident Reports & Emergency Logs");
+            System.out.println("9.  Live Database Dashboard & Analytics Summary");
+            System.out.println("10. Launch Graphical User Interface (GUI)");
+            System.out.println("0.  Exit");
+            System.out.print("Enter choice (0-10): ");
+
+            String choice = sc.nextLine().trim();
+            switch (choice) {
+                case "1": disasterMenu(); break;
+                case "2": shelterMenu(); break;
+                case "3": victimMenu(); break;
+                case "4": resourceMenu(); break;
+                case "5": inventoryMenu(); break;
+                case "6": volunteerMenu(); break;
+                case "7": assignmentMenu(); break;
+                case "8": incidentMenu(); break;
+                case "9": showAnalytics(); break;
+                case "10":
+                    System.out.println("Launching Swing GUI Dashboard...");
+                    javax.swing.SwingUtilities.invokeLater(() -> new DashboardUI().setVisible(true));
+                    break;
+                case "0":
+                    running = false;
+                    System.out.println("Exiting Disaster Management System. Stay safe!");
+                    break;
+                default:
+                    System.out.println("Invalid selection! Please enter a number between 0 and 10.");
+            }
+        }
+    }
+
+    // 1. DISASTER MENU
+    private static void disasterMenu() {
+        System.out.println("\n=== DISASTER EVENTS MENU ===");
+        System.out.println("1. View All Disasters");
+        System.out.println("2. Add New Disaster");
+        System.out.println("3. Search Disasters");
+        System.out.println("4. Delete Disaster");
+        System.out.print("Enter choice: ");
+        String c = sc.nextLine().trim();
 
         try {
-            con = getConnection();
-            System.out.println("✓ Connected to Database Successfully!\n");
+            switch (c) {
+                case "1":
+                    List<Disaster> list = DisasterDAO.getAll();
+                    System.out.println("\nID | Type | Location | Start Date | End Date | Severity");
+                    System.out.println("---------------------------------------------------------------");
+                    for (Disaster d : list) {
+                        System.out.printf("%-3d| %-12s| %-20s| %-10s| %-10s| %-8s\n",
+                                d.getDisasterId(), d.getDisasterType(), d.getLocation(),
+                                d.getStartDate(), (d.getEndDate() != null ? d.getEndDate() : "-"), d.getSeverity());
+                    }
+                    break;
+                case "2":
+                    System.out.print("Disaster Type (e.g. Flood, Earthquake): ");
+                    String type = sc.nextLine().trim();
+                    System.out.print("Location: ");
+                    String loc = sc.nextLine().trim();
+                    System.out.print("Start Date (YYYY-MM-DD): ");
+                    Date start = Date.valueOf(sc.nextLine().trim());
+                    System.out.print("End Date (YYYY-MM-DD or leave blank): ");
+                    String endStr = sc.nextLine().trim();
+                    Date end = endStr.isEmpty() ? null : Date.valueOf(endStr);
+                    System.out.print("Severity (Low / Medium / High / Critical): ");
+                    String sev = sc.nextLine().trim();
 
-            // Create instances of all classes
-            Disaster disaster = new Disaster();
-            Victim victim = new Victim();
-            Victim_Shelter_Details vsd = new Victim_Shelter_Details();
-            Victim_Disaster_Details vdd = new Victim_Disaster_Details();
-            Shelter shelter = new Shelter();
-            Volunteer volunteer = new Volunteer();
-            Volunteer_Skills vs = new Volunteer_Skills();
-            Volunteer_Assignments va = new Volunteer_Assignments();
-            Volunteer_Assignment_Names van = new Volunteer_Assignment_Names();
-            Volunteer_Assignment_Disaster_Types vadt = new Volunteer_Assignment_Disaster_Types();
-            Resource resource = new Resource();
-            Resource_Location rl = new Resource_Location();
-            Incident_Report ir = new Incident_Report();
-            Incident_Volunteer_Details ivd = new Incident_Volunteer_Details();
-            Incident_Disaster_Details idd = new Incident_Disaster_Details();
-            Shelter_Inventory si = new Shelter_Inventory();
-            Shelter_Inventory_Shelter_Details sisd = new Shelter_Inventory_Shelter_Details();
-            Shelter_Inventory_Resource_Details sird = new Shelter_Inventory_Resource_Details();
-            Shelter_Inventory_Disaster_Details sidd = new Shelter_Inventory_Disaster_Details();
-
-            boolean exit = false;
-
-            while (!exit) {
-                System.out.println("\n╔════════════════════════════════════════════════╗");
-                System.out.println("║    DISASTER MANAGEMENT SYSTEM - MAIN MENU      ║");
-                System.out.println("╚════════════════════════════════════════════════╝");
-                System.out.println("1.  Disaster Management");
-                System.out.println("2.  Victim Management");
-                System.out.println("3.  Shelter Management");
-                System.out.println("4.  Volunteer Management");
-                System.out.println("5.  Resource Management");
-                System.out.println("6.  Incident Report Management");
-                System.out.println("7.  Inventory Management");
-                System.out.println("0.  Exit");
-                System.out.println("════════════════════════════════════════════════");
-                System.out.print("Enter your choice: ");
-
-                int choice = sc.nextInt();
-
-                switch (choice) {
-                    case 1:
-                        disasterMenu(con, sc, disaster);
-                        break;
-                    case 2:
-                        victimMenu(con, sc, victim, vsd, vdd);
-                        break;
-                    case 3:
-                        shelterMenu(con, sc, shelter);
-                        break;
-                    case 4:
-                        volunteerMenu(con, sc, volunteer, vs, va, van, vadt);
-                        break;
-                    case 5:
-                        resourceMenu(con, sc, resource, rl);
-                        break;
-                    case 6:
-                        incidentMenu(con, sc, ir, ivd, idd);
-                        break;
-                    case 7:
-                        inventoryMenu(con, sc, si, sisd, sird, sidd);
-                        break;
-                    case 0:
-                        exit = true;
-                        System.out.println("\n✓ Thank you for using Disaster Management System!");
-                        break;
-                    default:
-                        System.out.println("\n✗ Invalid choice! Please try again.");
-                }
+                    Disaster d = new Disaster(type, loc, start, end, sev);
+                    if (DisasterDAO.insert(d)) {
+                        System.out.println("✓ Disaster added successfully with ID: " + d.getDisasterId());
+                    }
+                    break;
+                case "3":
+                    System.out.print("Enter search keyword: ");
+                    String kw = sc.nextLine().trim();
+                    List<Disaster> results = DisasterDAO.search(kw);
+                    System.out.println("\nSearch Results (" + results.size() + " matches):");
+                    for (Disaster dis : results) {
+                        System.out.println("• #" + dis.getDisasterId() + ": " + dis.getDisasterType() + " at " + dis.getLocation() + " [" + dis.getSeverity() + "]");
+                    }
+                    break;
+                case "4":
+                    System.out.print("Enter Disaster ID to delete: ");
+                    int id = Integer.parseInt(sc.nextLine().trim());
+                    if (DisasterDAO.delete(id)) {
+                        System.out.println("✓ Disaster deleted.");
+                    } else {
+                        System.out.println("✗ Record not found.");
+                    }
+                    break;
             }
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+        }
+    }
 
-        } catch (SQLException e) {
-            System.out.println("\n✗ Database Connection Error!");
-            e.printStackTrace();
-        } finally {
-            try {
-                if (con != null) con.close();
-                sc.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
+    // 2. SHELTER MENU
+    private static void shelterMenu() {
+        System.out.println("\n=== RELIEF SHELTERS MENU ===");
+        System.out.println("1. View All Shelters");
+        System.out.println("2. Add New Shelter");
+        System.out.println("3. Delete Shelter");
+        System.out.print("Enter choice: ");
+        String c = sc.nextLine().trim();
+
+        try {
+            switch (c) {
+                case "1":
+                    List<Shelter> list = ShelterDAO.getAll();
+                    System.out.println("\nID | Shelter Name | Capacity | Coordinator | Contact | Disaster ID");
+                    System.out.println("-------------------------------------------------------------------------");
+                    for (Shelter s : list) {
+                        System.out.printf("%-3d| %-25s| %-8d| %-18s| %-14s| %-5d\n",
+                                s.getShelterId(), s.getShelterName(), s.getCapacity(),
+                                s.getCoordinatorName(), s.getContactNumber(), s.getDisasterId());
+                    }
+                    break;
+                case "2":
+                    System.out.print("Shelter Name: ");
+                    String name = sc.nextLine().trim();
+                    System.out.print("Address / Location: ");
+                    String addr = sc.nextLine().trim();
+                    System.out.print("Capacity (bed count): ");
+                    int cap = Integer.parseInt(sc.nextLine().trim());
+                    System.out.print("Coordinator Name: ");
+                    String coord = sc.nextLine().trim();
+                    System.out.print("Contact Number: ");
+                    String phone = sc.nextLine().trim();
+                    System.out.print("Associated Disaster ID: ");
+                    int disId = Integer.parseInt(sc.nextLine().trim());
+
+                    Shelter s = new Shelter(name, addr, cap, coord, phone, disId);
+                    if (ShelterDAO.insert(s)) {
+                        System.out.println("✓ Shelter registered successfully with ID: " + s.getShelterId());
+                    }
+                    break;
+                case "3":
+                    System.out.print("Enter Shelter ID to delete: ");
+                    int id = Integer.parseInt(sc.nextLine().trim());
+                    if (ShelterDAO.delete(id)) {
+                        System.out.println("✓ Shelter deleted.");
+                    } else {
+                        System.out.println("✗ Record not found.");
+                    }
+                    break;
             }
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
         }
     }
 
-    // ==================== DISASTER MENU ====================
-    private static void disasterMenu(Connection con, Scanner sc, Disaster disaster) {
-        boolean back = false;
-        while (!back) {
-            System.out.println("\n┌─ DISASTER MANAGEMENT ─────────────────────┐");
-            System.out.println("│ 1. Insert Disaster Record               │");
-            System.out.println("│ 2. Display All Disasters                │");
-            System.out.println("│ 3. Update End Date                      │");
-            System.out.println("│ 4. Delete Disaster                      │");
-            System.out.println("│ 0. Back to Main Menu                    │");
-            System.out.println("└───────────────────────────────────────────┘");
-            System.out.print("Choice: ");
+    // 3. VICTIM MENU
+    private static void victimMenu() {
+        System.out.println("\n=== VICTIM REGISTRATION MENU ===");
+        System.out.println("1. View All Victims");
+        System.out.println("2. Register New Victim");
+        System.out.println("3. Delete Victim");
+        System.out.print("Enter choice: ");
+        String c = sc.nextLine().trim();
 
-            int choice = sc.nextInt();
-            switch (choice) {
-                case 1: disaster.insertDisaster(con, sc); break;
-                case 2: disaster.displayDisaster(con); break;
-                case 3: disaster.updateEndDate(con, sc); break;
-                case 4: disaster.delete(con, sc); break;
-                case 0: back = true; break;
-                default: System.out.println("✗ Invalid choice!");
+        try {
+            switch (c) {
+                case "1":
+                    List<Victim> list = VictimDAO.getAll();
+                    System.out.println("\nID | Name | Age | Gender | Medical Condition | Disaster ID | Shelter ID");
+                    System.out.println("-----------------------------------------------------------------------------");
+                    for (Victim v : list) {
+                        System.out.printf("%-3d| %-18s| %-3d| %-6s| %-25s| %-11d| %-10s\n",
+                                v.getVictimId(), v.getName(), v.getAge(), v.getGender(),
+                                v.getMedicalCondition(), v.getDisasterId(), (v.getShelterId() != null ? v.getShelterId() : "None"));
+                    }
+                    break;
+                case "2":
+                    System.out.print("Victim Full Name: ");
+                    String name = sc.nextLine().trim();
+                    System.out.print("Age: ");
+                    int age = Integer.parseInt(sc.nextLine().trim());
+                    System.out.print("Gender (Male/Female/Other): ");
+                    String gender = sc.nextLine().trim();
+                    System.out.print("Contact Number (or leave blank): ");
+                    String phone = sc.nextLine().trim();
+                    System.out.print("Medical Condition: ");
+                    String med = sc.nextLine().trim();
+                    System.out.print("Disaster ID: ");
+                    int disId = Integer.parseInt(sc.nextLine().trim());
+                    System.out.print("Shelter ID (0 for None/Field): ");
+                    int shId = Integer.parseInt(sc.nextLine().trim());
+                    Integer shelterId = (shId > 0) ? shId : null;
+
+                    Victim v = new Victim(name, age, gender, phone.isEmpty() ? null : phone, med, disId, shelterId);
+                    if (VictimDAO.insert(v)) {
+                        System.out.println("✓ Victim registered with ID: " + v.getVictimId());
+                    }
+                    break;
+                case "3":
+                    System.out.print("Enter Victim ID to delete: ");
+                    int id = Integer.parseInt(sc.nextLine().trim());
+                    if (VictimDAO.delete(id)) {
+                        System.out.println("✓ Victim record deleted.");
+                    } else {
+                        System.out.println("✗ Record not found.");
+                    }
+                    break;
             }
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
         }
     }
 
-    // ==================== VICTIM MENU ====================
-    private static void victimMenu(Connection con, Scanner sc, Victim victim,
-                                   Victim_Shelter_Details vsd, Victim_Disaster_Details vdd) {
-        boolean back = false;
-        while (!back) {
-            System.out.println("\n┌─ VICTIM MANAGEMENT ───────────────────────┐");
-            System.out.println("│ 1. Insert Victim Record                 │");
-            System.out.println("│ 2. Display All Victims                  │");
-            System.out.println("│ 3. Update Victim Age                    │");
-            System.out.println("│ 4. Update Victim Contact                │");
-            System.out.println("│ 5. Delete Victim                        │");
-            System.out.println("│ 6. Victim-Shelter Details               │");
-            System.out.println("│ 7. Victim-Disaster Details              │");
-            System.out.println("│ 0. Back to Main Menu                    │");
-            System.out.println("└───────────────────────────────────────────┘");
-            System.out.print("Choice: ");
+    // 4. RESOURCE MENU
+    private static void resourceMenu() {
+        System.out.println("\n=== RESOURCE CATALOG MENU ===");
+        System.out.println("1. View All Resource Items");
+        System.out.println("2. Add Resource Item");
+        System.out.println("3. Delete Resource Item");
+        System.out.print("Enter choice: ");
+        String c = sc.nextLine().trim();
 
-            int choice = sc.nextInt();
-            switch (choice) {
-                case 1: victim.insertVictim(con, sc); break;
-                case 2: victim.displayVictim(con); break;
-                case 3: victim.updateAge(con, sc); break;
-                case 4: victim.updateContact(con, sc); break;
-                case 5: victim.delete(con, sc); break;
-                case 6: victimShelterDetailsMenu(con, sc, vsd); break;
-                case 7: victimDisasterDetailsMenu(con, sc, vdd); break;
-                case 0: back = true; break;
-                default: System.out.println("✗ Invalid choice!");
+        try {
+            switch (c) {
+                case "1":
+                    List<Resource> list = ResourceDAO.getAll();
+                    System.out.println("\nID | Resource Name | Unit | Description");
+                    System.out.println("-------------------------------------------------------------------");
+                    for (Resource r : list) {
+                        System.out.printf("%-3d| %-25s| %-10s| %s\n",
+                                r.getResourceId(), r.getResourceName(), r.getUnit(), (r.getDescription() != null ? r.getDescription() : "-"));
+                    }
+                    break;
+                case "2":
+                    System.out.print("Resource Name (e.g. Water Bottles 1L): ");
+                    String name = sc.nextLine().trim();
+                    System.out.print("Packaging Unit (e.g. Bottles, Kits, Packets): ");
+                    String unit = sc.nextLine().trim();
+                    System.out.print("Description: ");
+                    String desc = sc.nextLine().trim();
+
+                    Resource r = new Resource(name, desc, unit);
+                    if (ResourceDAO.insert(r)) {
+                        System.out.println("✓ Resource cataloged with ID: " + r.getResourceId());
+                    }
+                    break;
+                case "3":
+                    System.out.print("Enter Resource ID to delete: ");
+                    int id = Integer.parseInt(sc.nextLine().trim());
+                    if (ResourceDAO.delete(id)) {
+                        System.out.println("✓ Resource deleted.");
+                    } else {
+                        System.out.println("✗ Record not found.");
+                    }
+                    break;
             }
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
         }
     }
 
-    private static void victimShelterDetailsMenu(Connection con, Scanner sc, Victim_Shelter_Details vsd) {
-        System.out.println("\n1. Insert  2. Display  3. Update  4. Delete  0. Back");
-        System.out.print("Choice: ");
-        int c = sc.nextInt();
-        switch (c) {
-            case 1: vsd.insertVictimShelterDetails(con, sc); break;
-            case 2: vsd.displayVictimShelterDetails(con); break;
-            case 3: vsd.updateShelterAddress(con, sc); break;
-            case 4: vsd.delete(con, sc); break;
-        }
-    }
+    // 5. INVENTORY MENU
+    private static void inventoryMenu() {
+        System.out.println("\n=== SHELTER INVENTORY MENU (Shelter ── Resource) ===");
+        System.out.println("1. View Shelter Inventory Stock Levels");
+        System.out.println("2. Allocate / Update Resource Stock at Shelter");
+        System.out.println("3. Remove Stock Item from Shelter");
+        System.out.print("Enter choice: ");
+        String c = sc.nextLine().trim();
 
-    private static void victimDisasterDetailsMenu(Connection con, Scanner sc, Victim_Disaster_Details vdd) {
-        System.out.println("\n1. Insert  2. Display  3. Update  4. Delete  0. Back");
-        System.out.print("Choice: ");
-        int c = sc.nextInt();
-        switch (c) {
-            case 1: vdd.insertVictimDisasterDetails(con, sc); break;
-            case 2: vdd.displayVictimDisasterDetails(con); break;
-            case 3: vdd.updateDisasterType(con, sc); break;
-            case 4: vdd.delete(con, sc); break;
-        }
-    }
+        try {
+            switch (c) {
+                case "1":
+                    List<ShelterInventory> list = ShelterInventoryDAO.getAll();
+                    System.out.println("\nShelter ID | Shelter Name | Resource ID | Resource Item | Quantity | Unit");
+                    System.out.println("---------------------------------------------------------------------------------");
+                    for (ShelterInventory si : list) {
+                        System.out.printf("%-10d| %-22s| %-11d| %-20s| %-8d| %s\n",
+                                si.getShelterId(), si.getShelterName(), si.getResourceId(), si.getResourceName(), si.getQuantity(), si.getUnit());
+                    }
+                    break;
+                case "2":
+                    System.out.print("Enter Shelter ID: ");
+                    int sId = Integer.parseInt(sc.nextLine().trim());
+                    System.out.print("Enter Resource ID: ");
+                    int rId = Integer.parseInt(sc.nextLine().trim());
+                    System.out.print("Enter Quantity Stocked: ");
+                    int qty = Integer.parseInt(sc.nextLine().trim());
 
-    // ==================== SHELTER MENU ====================
-    private static void shelterMenu(Connection con, Scanner sc, Shelter shelter) {
-        boolean back = false;
-        while (!back) {
-            System.out.println("\n┌─ SHELTER MANAGEMENT ──────────────────────┐");
-            System.out.println("│ 1. Insert Shelter Record                │");
-            System.out.println("│ 2. Display All Shelters                 │");
-            System.out.println("│ 3. Update Shelter Details               │");
-            System.out.println("│ 4. Delete Shelter                       │");
-            System.out.println("│ 0. Back to Main Menu                    │");
-            System.out.println("└───────────────────────────────────────────┘");
-            System.out.print("Choice: ");
+                    if (ShelterInventoryDAO.saveOrUpdate(sId, rId, qty)) {
+                        System.out.println("✓ Inventory stock updated successfully.");
+                    }
+                    break;
+                case "3":
+                    System.out.print("Enter Shelter ID: ");
+                    int dsId = Integer.parseInt(sc.nextLine().trim());
+                    System.out.print("Enter Resource ID: ");
+                    int drId = Integer.parseInt(sc.nextLine().trim());
 
-            int choice = sc.nextInt();
-            switch (choice) {
-                case 1: shelter.insertShelter(con, sc); break;
-                case 2: shelter.displayShelter(con); break;
-                case 3: shelter.updateShelter(con, sc); break;
-                case 4: shelter.delete(con, sc); break;
-                case 0: back = true; break;
-                default: System.out.println("✗ Invalid choice!");
+                    if (ShelterInventoryDAO.delete(dsId, drId)) {
+                        System.out.println("✓ Inventory record removed.");
+                    } else {
+                        System.out.println("✗ Record not found.");
+                    }
+                    break;
             }
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
         }
     }
 
-    // ==================== VOLUNTEER MENU ====================
-    private static void volunteerMenu(Connection con, Scanner sc, Volunteer volunteer,
-                                      Volunteer_Skills vs, Volunteer_Assignments va,
-                                      Volunteer_Assignment_Names van,
-                                      Volunteer_Assignment_Disaster_Types vadt) {
-        boolean back = false;
-        while (!back) {
-            System.out.println("\n┌─ VOLUNTEER MANAGEMENT ────────────────────┐");
-            System.out.println("│ 1. Insert Volunteer Record              │");
-            System.out.println("│ 2. Display All Volunteers               │");
-            System.out.println("│ 3. Update Volunteer Availability        │");
-            System.out.println("│ 4. Delete Volunteer                     │");
-            System.out.println("│ 5. Volunteer Skills Management          │");
-            System.out.println("│ 6. Volunteer Assignments Management     │");
-            System.out.println("│ 7. Assignment Names Management          │");
-            System.out.println("│ 8. Assignment Disaster Types            │");
-            System.out.println("│ 0. Back to Main Menu                    │");
-            System.out.println("└───────────────────────────────────────────┘");
-            System.out.print("Choice: ");
+    // 6. VOLUNTEER MENU
+    private static void volunteerMenu() {
+        System.out.println("\n=== VOLUNTEER REGISTRY MENU ===");
+        System.out.println("1. View All Volunteers");
+        System.out.println("2. Register New Volunteer");
+        System.out.println("3. Delete Volunteer");
+        System.out.print("Enter choice: ");
+        String c = sc.nextLine().trim();
 
-            int choice = sc.nextInt();
-            switch (choice) {
-                case 1: volunteer.insertVolunteer(con, sc); break;
-                case 2: volunteer.displayVolunteer(con); break;
-                case 3: volunteer.updateAvailability(con, sc); break;
-                case 4: volunteer.delete(con, sc); break;
-                case 5: volunteerSkillsMenu(con, sc, vs); break;
-                case 6: volunteerAssignmentsMenu(con, sc, va); break;
-                case 7: volunteerAssignmentNamesMenu(con, sc, van); break;
-                case 8: volunteerAssignmentDisasterTypesMenu(con, sc, vadt); break;
-                case 0: back = true; break;
-                default: System.out.println("✗ Invalid choice!");
+        try {
+            switch (c) {
+                case "1":
+                    List<Volunteer> list = VolunteerDAO.getAll();
+                    System.out.println("\nID | Name | Age | Gender | Contact | Skills | Status");
+                    System.out.println("-----------------------------------------------------------------------------");
+                    for (Volunteer v : list) {
+                        System.out.printf("%-3d| %-18s| %-3d| %-6s| %-14s| %-25s| %s\n",
+                                v.getVolunteerId(), v.getName(), v.getAge(), v.getGender(), v.getContactNumber(), v.getSkills(), v.getAvailabilityStatus());
+                    }
+                    break;
+                case "2":
+                    System.out.print("Volunteer Name: ");
+                    String name = sc.nextLine().trim();
+                    System.out.print("Age (Min 18): ");
+                    int age = Integer.parseInt(sc.nextLine().trim());
+                    System.out.print("Gender (Male/Female/Other): ");
+                    String gender = sc.nextLine().trim();
+                    System.out.print("Contact Number: ");
+                    String phone = sc.nextLine().trim();
+                    System.out.print("Skills (e.g. First Aid, Rescue, Driving): ");
+                    String skills = sc.nextLine().trim();
+                    System.out.print("Availability (Available / Assigned / On Leave): ");
+                    String status = sc.nextLine().trim();
+
+                    Volunteer v = new Volunteer(name, age, gender, phone, skills, status);
+                    if (VolunteerDAO.insert(v)) {
+                        System.out.println("✓ Volunteer registered with ID: " + v.getVolunteerId());
+                    }
+                    break;
+                case "3":
+                    System.out.print("Enter Volunteer ID to delete: ");
+                    int id = Integer.parseInt(sc.nextLine().trim());
+                    if (VolunteerDAO.delete(id)) {
+                        System.out.println("✓ Volunteer deleted.");
+                    } else {
+                        System.out.println("✗ Record not found.");
+                    }
+                    break;
             }
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
         }
     }
 
-    private static void volunteerSkillsMenu(Connection con, Scanner sc, Volunteer_Skills vs) {
-        System.out.println("\n1. Insert  2. Display  3. Update  0. Back");
-        System.out.print("Choice: ");
-        int c = sc.nextInt();
-        switch (c) {
-            case 1: vs.insertVolunteerSkills(con, sc); break;
-            case 2: vs.displayVolunteerSkills(con); break;
-            case 3: vs.updateSkill(con, sc); break;
-        }
-    }
+    // 7. ASSIGNMENT MENU
+    private static void assignmentMenu() {
+        System.out.println("\n=== VOLUNTEER ASSIGNMENTS MENU (Volunteer ── Disaster) ===");
+        System.out.println("1. View All Volunteer Deployments");
+        System.out.println("2. Deploy Volunteer to Disaster");
+        System.out.println("3. Remove Volunteer Deployment");
+        System.out.print("Enter choice: ");
+        String c = sc.nextLine().trim();
 
-    private static void volunteerAssignmentsMenu(Connection con, Scanner sc, Volunteer_Assignments va) {
-        System.out.println("\n1. Insert  2. Display  3. Update  4. Delete  0. Back");
-        System.out.print("Choice: ");
-        int c = sc.nextInt();
-        switch (c) {
-            case 1: va.insertVolunteerAssignments(con, sc); break;
-            case 2: va.displayVolunteerAssignments(con); break;
-            case 3: va.updateAssignment(con, sc); break;
-            case 4: va.delete(con, sc); break;
-        }
-    }
+        try {
+            switch (c) {
+                case "1":
+                    List<VolunteerAssignment> list = VolunteerAssignmentDAO.getAll();
+                    System.out.println("\nVol ID | Volunteer Name | Dis ID | Disaster Event | Operational Role | Shift");
+                    System.out.println("---------------------------------------------------------------------------------");
+                    for (VolunteerAssignment va : list) {
+                        System.out.printf("%-6d| %-18s| %-6d| %-15s| %-20s| %s\n",
+                                va.getVolunteerId(), va.getVolunteerName(), va.getDisasterId(), va.getDisasterType(), va.getRole(), va.getShiftTiming());
+                    }
+                    break;
+                case "2":
+                    System.out.print("Enter Volunteer ID: ");
+                    int vId = Integer.parseInt(sc.nextLine().trim());
+                    System.out.print("Enter Disaster ID: ");
+                    int dId = Integer.parseInt(sc.nextLine().trim());
+                    System.out.print("Enter Operational Role: ");
+                    String role = sc.nextLine().trim();
+                    System.out.print("Enter Shift Timing: ");
+                    String shift = sc.nextLine().trim();
 
-    private static void volunteerAssignmentNamesMenu(Connection con, Scanner sc, Volunteer_Assignment_Names van) {
-        System.out.println("\n1. Insert  2. Display  3. Delete  0. Back");
-        System.out.print("Choice: ");
-        int c = sc.nextInt();
-        switch (c) {
-            case 1: van.insertVolunteerAssignmentNames(con, sc); break;
-            case 2: van.displayVolunteerAssignmentNames(con); break;
-            case 3: van.delete(con, sc); break;
-        }
-    }
+                    if (VolunteerAssignmentDAO.saveOrUpdate(vId, dId, role, shift)) {
+                        System.out.println("✓ Volunteer deployment recorded successfully.");
+                    }
+                    break;
+                case "3":
+                    System.out.print("Enter Volunteer ID: ");
+                    int dvId = Integer.parseInt(sc.nextLine().trim());
+                    System.out.print("Enter Disaster ID: ");
+                    int ddId = Integer.parseInt(sc.nextLine().trim());
 
-    private static void volunteerAssignmentDisasterTypesMenu(Connection con, Scanner sc,
-                                                             Volunteer_Assignment_Disaster_Types vadt) {
-        System.out.println("\n1. Insert  2. Display  3. Delete  0. Back");
-        System.out.print("Choice: ");
-        int c = sc.nextInt();
-        switch (c) {
-            case 1: vadt.insertVolunteerAssignmentDisasterTypes(con, sc); break;
-            case 2: vadt.displayVolunteerAssignmentDisasterTypes(con); break;
-            case 3: vadt.delete(con, sc); break;
-        }
-    }
-
-    // ==================== RESOURCE MENU ====================
-    private static void resourceMenu(Connection con, Scanner sc, Resource resource, Resource_Location rl) {
-        boolean back = false;
-        while (!back) {
-            System.out.println("\n┌─ RESOURCE MANAGEMENT ─────────────────────┐");
-            System.out.println("│ 1. Insert Resource Record               │");
-            System.out.println("│ 2. Display All Resources                │");
-            System.out.println("│ 3. Update Resource Name                 │");
-            System.out.println("│ 4. Update Resource Description          │");
-            System.out.println("│ 5. Delete Resource                      │");
-            System.out.println("│ 6. Resource Location Management         │");
-            System.out.println("│ 0. Back to Main Menu                    │");
-            System.out.println("└───────────────────────────────────────────┘");
-            System.out.print("Choice: ");
-
-            int choice = sc.nextInt();
-            switch (choice) {
-                case 1: resource.insertResource(con, sc); break;
-                case 2: resource.displayResource(con); break;
-                case 3: resource.updateResourceName(con, sc); break;
-                case 4: resource.updateDescription(con, sc); break;
-                case 5: resource.delete(con, sc); break;
-                case 6: resourceLocationMenu(con, sc, rl); break;
-                case 0: back = true; break;
-                default: System.out.println("✗ Invalid choice!");
+                    if (VolunteerAssignmentDAO.delete(dvId, ddId)) {
+                        System.out.println("✓ Deployment record removed.");
+                    } else {
+                        System.out.println("✗ Record not found.");
+                    }
+                    break;
             }
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
         }
     }
 
-    private static void resourceLocationMenu(Connection con, Scanner sc, Resource_Location rl) {
-        System.out.println("\n┌─ Resource Location ───────────────────────┐");
-        System.out.println("│ 1. Insert  2. Display  3. Update Quantity │");
-        System.out.println("│ 4. Update Disaster ID  5. Update Shelter  │");
-        System.out.println("│ 6. Delete  0. Back                        │");
-        System.out.println("└───────────────────────────────────────────┘");
-        System.out.print("Choice: ");
-        int c = sc.nextInt();
-        switch (c) {
-            case 1: rl.insertResource_Location(con, sc); break;
-            case 2: rl.displayResource_Location(con); break;
-            case 3: rl.updateQuantity(con, sc); break;
-            case 4: rl.updateDisasterID(con, sc); break;
-            case 5: rl.updateShelterID(con, sc); break;
-            case 6: rl.delete(con, sc); break;
-        }
-    }
+    // 8. INCIDENT MENU
+    private static void incidentMenu() {
+        System.out.println("\n=== INCIDENT REPORTS MENU ===");
+        System.out.println("1. View All Incident Reports");
+        System.out.println("2. Log New Incident Report");
+        System.out.println("3. Update Incident Status");
+        System.out.println("4. Delete Incident Report");
+        System.out.print("Enter choice: ");
+        String c = sc.nextLine().trim();
 
-    // ==================== INCIDENT MENU ====================
-    private static void incidentMenu(Connection con, Scanner sc, Incident_Report ir,
-                                     Incident_Volunteer_Details ivd, Incident_Disaster_Details idd) {
-        boolean back = false;
-        while (!back) {
-            System.out.println("\n┌─ INCIDENT REPORT MANAGEMENT ──────────────┐");
-            System.out.println("│ 1. Insert Incident Report               │");
-            System.out.println("│ 2. Display All Reports                  │");
-            System.out.println("│ 3. Update Description                   │");
-            System.out.println("│ 4. Update Timestamp                     │");
-            System.out.println("│ 5. Update Volunteer ID                  │");
-            System.out.println("│ 6. Update Disaster ID                   │");
-            System.out.println("│ 7. Delete Report                        │");
-            System.out.println("│ 8. Incident Volunteer Details           │");
-            System.out.println("│ 9. Incident Disaster Details            │");
-            System.out.println("│ 0. Back to Main Menu                    │");
-            System.out.println("└───────────────────────────────────────────┘");
-            System.out.print("Choice: ");
+        try {
+            switch (c) {
+                case "1":
+                    List<IncidentReport> list = IncidentReportDAO.getAll();
+                    System.out.println("\nID | Type | Status | Disaster Event | Volunteer | Logged Time | Description");
+                    System.out.println("------------------------------------------------------------------------------------------");
+                    for (IncidentReport ir : list) {
+                        System.out.printf("%-3d| %-15s| %-10s| %-15s| %-15s| %-19s| %s\n",
+                                ir.getReportId(), ir.getReportType(), ir.getStatus(),
+                                ir.getDisasterType(), ir.getVolunteerName(), ir.getReportTime(), ir.getDescription());
+                    }
+                    break;
+                case "2":
+                    System.out.print("Disaster ID: ");
+                    int dId = Integer.parseInt(sc.nextLine().trim());
+                    System.out.print("Reporting Volunteer ID: ");
+                    int vId = Integer.parseInt(sc.nextLine().trim());
+                    System.out.print("Incident Type (e.g. Road Blockage, Medical Emergency): ");
+                    String type = sc.nextLine().trim();
+                    System.out.print("Status (Open / In Progress / Resolved): ");
+                    String status = sc.nextLine().trim();
+                    System.out.print("Description & Details: ");
+                    String desc = sc.nextLine().trim();
 
-            int choice = sc.nextInt();
-            switch (choice) {
-                case 1: ir.insertIncident_Report(con, sc); break;
-                case 2: ir.displayIncident_Report(con); break;
-                case 3: ir.updateDescription(con, sc); break;
-                case 4: ir.updateTimestamp(con, sc); break;
-                case 5: ir.updateVolunteerID(con, sc); break;
-                case 6: ir.updateDisasterID(con, sc); break;
-                case 7: ir.delete(con, sc); break;
-                case 8: incidentVolunteerDetailsMenu(con, sc, ivd); break;
-                case 9: incidentDisasterDetailsMenu(con, sc, idd); break;
-                case 0: back = true; break;
-                default: System.out.println("✗ Invalid choice!");
+                    IncidentReport report = new IncidentReport(desc, null, type, status, dId, vId);
+                    if (IncidentReportDAO.insert(report)) {
+                        System.out.println("✓ Incident report logged with ID: " + report.getReportId());
+                    }
+                    break;
+                case "3":
+                    System.out.print("Enter Incident Report ID: ");
+                    int rId = Integer.parseInt(sc.nextLine().trim());
+                    System.out.print("Enter New Status (Open / In Progress / Resolved / Closed): ");
+                    String newStatus = sc.nextLine().trim();
+
+                    if (IncidentReportDAO.updateStatus(rId, newStatus)) {
+                        System.out.println("✓ Status updated.");
+                    } else {
+                        System.out.println("✗ Report not found.");
+                    }
+                    break;
+                case "4":
+                    System.out.print("Enter Incident Report ID to delete: ");
+                    int delId = Integer.parseInt(sc.nextLine().trim());
+                    if (IncidentReportDAO.delete(delId)) {
+                        System.out.println("✓ Incident report deleted.");
+                    } else {
+                        System.out.println("✗ Record not found.");
+                    }
+                    break;
             }
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
         }
     }
 
-    private static void incidentVolunteerDetailsMenu(Connection con, Scanner sc, Incident_Volunteer_Details ivd) {
-        System.out.println("\n1. Insert  2. Display  3. Update  4. Delete  0. Back");
-        System.out.print("Choice: ");
-        int c = sc.nextInt();
-        switch (c) {
-            case 1: ivd.insertIncident_Volunteer_Details(con, sc); break;
-            case 2: ivd.displayIncident_Volunteer_Details(con); break;
-            case 3: ivd.updateVolName(con, sc); break;
-            case 4: ivd.delete(con, sc); break;
-        }
-    }
+    // 9. ANALYTICS SUMMARY
+    private static void showAnalytics() {
+        System.out.println("\n==========================================================");
+        System.out.println("       LIVE DATABASE ANALYTICS & METRICS SUMMARY          ");
+        System.out.println("==========================================================");
 
-    private static void incidentDisasterDetailsMenu(Connection con, Scanner sc, Incident_Disaster_Details idd) {
-        System.out.println("\n1. Insert  2. Display  3. Update  4. Delete  0. Back");
-        System.out.print("Choice: ");
-        int c = sc.nextInt();
-        switch (c) {
-            case 1: idd.insertIncident_Disaster_Details(con, sc); break;
-            case 2: idd.displayIncident_Disaster_Details(con); break;
-            case 3: idd.updateDisasterType(con, sc); break;
-            case 4: idd.delete(con, sc); break;
-        }
-    }
+        DashboardDAO.SystemStats stats = DashboardDAO.getSystemStats();
+        System.out.println("• Active Disasters Recorded   : " + stats.totalDisasters);
+        System.out.println("• Registered Affected Victims : " + stats.totalVictims);
+        System.out.println("• Relief Shelters Established : " + stats.totalShelters);
+        System.out.println("• Registered Relief Volunteers: " + stats.totalVolunteers);
+        System.out.println("• Total Supply Units Stocked  : " + stats.totalInventoryUnits);
+        System.out.println("• Open Emergency Incidents    : " + stats.openIncidents);
 
-    // ==================== INVENTORY MENU ====================
-    private static void inventoryMenu(Connection con, Scanner sc, Shelter_Inventory si,
-                                      Shelter_Inventory_Shelter_Details sisd,
-                                      Shelter_Inventory_Resource_Details sird,
-                                      Shelter_Inventory_Disaster_Details sidd) {
-        boolean back = false;
-        while (!back) {
-            System.out.println("\n┌─ SHELTER INVENTORY MANAGEMENT ────────────┐");
-            System.out.println("│ 1. Insert Inventory Record              │");
-            System.out.println("│ 2. Display All Inventory                │");
-            System.out.println("│ 3. Update Quantity                      │");
-            System.out.println("│ 4. Update Resource ID                   │");
-            System.out.println("│ 5. Update Shelter ID                    │");
-            System.out.println("│ 6. Delete Inventory Record              │");
-            System.out.println("│ 7. Shelter Details Management           │");
-            System.out.println("│ 8. Resource Details Management          │");
-            System.out.println("│ 9. Disaster Details Management          │");
-            System.out.println("│ 0. Back to Main Menu                    │");
-            System.out.println("└───────────────────────────────────────────┘");
-            System.out.print("Choice: ");
-
-            int choice = sc.nextInt();
-            switch (choice) {
-                case 1: si.insertShelter_Inventory(con, sc); break;
-                case 2: si.displayShelter_Inventory(con); break;
-                case 3: si.updateQuantity(con, sc); break;
-                case 4: si.updateResourceID(con, sc); break;
-                case 5: si.updateShelterID(con, sc); break;
-                case 6: si.delete(con, sc); break;
-                case 7: shelterInventoryShelterDetailsMenu(con, sc, sisd); break;
-                case 8: shelterInventoryResourceDetailsMenu(con, sc, sird); break;
-                case 9: shelterInventoryDisasterDetailsMenu(con, sc, sidd); break;
-                case 0: back = true; break;
-                default: System.out.println("✗ Invalid choice!");
+        System.out.println("\n[SQL Breakdown: Victims by Disaster Event]");
+        try {
+            List<Object[]> rows = DashboardDAO.getVictimsByDisaster();
+            for (Object[] r : rows) {
+                System.out.printf("  - %s (%s, Severity: %s): %d victims\n", r[0], r[1], r[2], r[3]);
             }
+        } catch (Exception e) {
+            System.err.println("  Error: " + e.getMessage());
         }
-    }
 
-    private static void shelterInventoryShelterDetailsMenu(Connection con, Scanner sc,
-                                                           Shelter_Inventory_Shelter_Details sisd) {
-        System.out.println("\n1. Insert  2. Display  3. Update Address  4. Update Coord");
-        System.out.println("5. Update Disaster  6. Delete  0. Back");
-        System.out.print("Choice: ");
-        int c = sc.nextInt();
-        switch (c) {
-            case 1: sisd.insertShelter_Inventory_Shelter_Details(con, sc); break;
-            case 2: sisd.displayShelter_Inventory_Shelter_Details(con); break;
-            case 3: sisd.updateShelterAddress(con, sc); break;
-            case 4: sisd.updateCoordName(con, sc); break;
-            case 5: sisd.updateDisasterID(con, sc); break;
-            case 6: sisd.delete(con, sc); break;
-        }
-    }
-
-    private static void shelterInventoryResourceDetailsMenu(Connection con, Scanner sc,
-                                                            Shelter_Inventory_Resource_Details sird) {
-        System.out.println("\n1. Insert  2. Display  3. Update  4. Delete  0. Back");
-        System.out.print("Choice: ");
-        int c = sc.nextInt();
-        switch (c) {
-            case 1: sird.insertShelter_Inventory_Resource_Details(con, sc); break;
-            case 2: sird.displayShelter_Inventory_Resource_Details(con); break;
-            case 3: sird.updateResourceName(con, sc); break;
-            case 4: sird.delete(con, sc); break;
-        }
-    }
-
-    private static void shelterInventoryDisasterDetailsMenu(Connection con, Scanner sc,
-                                                            Shelter_Inventory_Disaster_Details sidd) {
-        System.out.println("\n1. Insert  2. Display  3. Update Type  4. Update Disaster ID");
-        System.out.println("5. Update Shelter ID  6. Delete  0. Back");
-        System.out.print("Choice: ");
-        int c = sc.nextInt();
-        switch (c) {
-            case 1: sidd.insertShelter_Inventory_Disaster_Details(con, sc); break;
-            case 2: sidd.displayShelter_Inventory_Disaster_Details(con); break;
-            case 3: sidd.updateDisasterType(con, sc); break;
-            case 4: sidd.updateDisasterID(con, sc); break;
-            case 5: sidd.updateShelterID(con, sc); break;
-            case 6: sidd.delete(con, sc); break;
+        System.out.println("\n[SQL Breakdown: Shelter Occupancy vs Capacity]");
+        try {
+            List<Object[]> rows = DashboardDAO.getShelterOccupancy();
+            for (Object[] r : rows) {
+                System.out.printf("  - %s (%s): Capacity %d | Occupancy %d | Available %d\n", r[0], r[1], r[2], r[3], r[4]);
+            }
+        } catch (Exception e) {
+            System.err.println("  Error: " + e.getMessage());
         }
     }
 }

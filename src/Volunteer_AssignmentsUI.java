@@ -1,434 +1,302 @@
 import javax.swing.*;
-import javax.swing.border.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.*;
-import java.sql.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.List;
 
-class VolunteerAssignmentsUI extends JFrame {
-    private JTextField addVolunteerIdField, addDisasterIdField, addRoleField, addShiftField;
-    private JTextField updateVolunteerIdField, updateDisasterIdField, updateRoleField, updateShiftField;
-    private JTextField deleteVolunteerIdField, deleteDisasterIdField;
-    private JTextArea outputArea;
-    private Connection con;
+public class Volunteer_AssignmentsUI extends JFrame {
 
-    // Modern color scheme
-    private final Color PRIMARY_BLUE = new Color(30, 58, 138);
-    private final Color LIGHT_BG = new Color(249, 250, 251);
-    private final Color CARD_BG = Color.WHITE;
-    private final Color ORANGE = new Color(249, 115, 22);
-    private final Color RED = new Color(239, 68, 68);
-    private final Color BLUE_BTN = new Color(37, 99, 235);
-    private final Color BORDER_COLOR = new Color(229, 231, 235);
+    private JComboBox<ComboItem> volunteerCombo;
+    private JComboBox<ComboItem> disasterCombo;
+    private JTextField roleField, shiftField, searchField;
+    private JTable table;
+    private DefaultTableModel tableModel;
 
-    public VolunteerAssignmentsUI() {
-        setTitle("Volunteer Assignments Management System");
-        setSize(1400, 800);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+    // Track active selection
+    private Integer selectedVolunteerId = null;
+    private Integer selectedDisasterId = null;
+
+    public Volunteer_AssignmentsUI() {
+        setTitle("Volunteer Deployment - Disaster Assignments");
+        setSize(1200, 700);
         setLocationRelativeTo(null);
-
-        try {
-            con = DatabaseConnection.getConnection();
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Database connection failed!");
-            e.printStackTrace();
-            return;
-        }
-
-        // Main container with light background
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(LIGHT_BG);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout());
 
         // Header
-        JPanel header = createHeader();
-        mainPanel.add(header, BorderLayout.NORTH);
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(UITheme.PRIMARY_DARK);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 25, 15, 25));
 
-        // Content area
-        JPanel contentPanel = new JPanel(new BorderLayout(15, 15));
-        contentPanel.setBackground(LIGHT_BG);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        // Top section with three cards
-        JPanel cardsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
-        cardsPanel.setBackground(LIGHT_BG);
-        cardsPanel.setPreferredSize(new Dimension(1400, 320));
-
-        cardsPanel.add(createAddCard());
-        cardsPanel.add(createUpdateCard());
-        cardsPanel.add(createDeleteCard());
-
-        contentPanel.add(cardsPanel, BorderLayout.NORTH);
-
-        // Bottom section - Display area
-        JPanel displayPanel = createDisplayPanel();
-        contentPanel.add(displayPanel, BorderLayout.CENTER);
-
-        mainPanel.add(contentPanel, BorderLayout.CENTER);
-        add(mainPanel);
-    }
-
-    private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(PRIMARY_BLUE);
-        header.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
-
-        JPanel textPanel = new JPanel(new GridLayout(2, 1, 0, 5));
-        textPanel.setBackground(PRIMARY_BLUE);
-
-        JLabel titleLabel = new JLabel("📋 Volunteer Assignments Management");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        JLabel titleLabel = new JLabel("🎯 Volunteer Field Assignments (M:N Volunteer ── Disaster)");
+        titleLabel.setFont(UITheme.FONT_TITLE);
         titleLabel.setForeground(Color.WHITE);
 
-        JLabel subtitleLabel = new JLabel("Assign volunteers to disaster relief operations and manage shift schedules");
-        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        subtitleLabel.setForeground(new Color(191, 219, 254));
+        JLabel subtitleLabel = new JLabel("Deploy registered volunteers to specific disaster zones, allocate operational roles and shifts");
+        subtitleLabel.setFont(UITheme.FONT_BODY);
+        subtitleLabel.setForeground(new Color(203, 213, 225));
 
-        textPanel.add(titleLabel);
-        textPanel.add(subtitleLabel);
-        header.add(textPanel, BorderLayout.WEST);
+        JPanel titleBox = new JPanel(new GridLayout(2, 1, 0, 4));
+        titleBox.setOpaque(false);
+        titleBox.add(titleLabel);
+        titleBox.add(subtitleLabel);
+        headerPanel.add(titleBox, BorderLayout.WEST);
+        add(headerPanel, BorderLayout.NORTH);
 
-        return header;
-    }
+        // Center Content
+        JPanel contentPanel = new JPanel(new BorderLayout(15, 15));
+        contentPanel.setBackground(UITheme.BG_LIGHT);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-    private JPanel createAddCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(59, 130, 246), 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
+        // Left Form Card
+        JPanel formCard = UITheme.createCard("Assignment Details", UITheme.PRIMARY_DARK);
+        formCard.setPreferredSize(new Dimension(420, 0));
 
-        JLabel titleLabel = new JLabel("Add New Assignment");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(new Color(59, 130, 246));
+        JPanel formGrid = new JPanel(new GridLayout(4, 2, 8, 14));
+        formGrid.setOpaque(false);
 
-        JPanel formPanel = new JPanel(new GridLayout(4, 2, 10, 12));
-        formPanel.setBackground(CARD_BG);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
+        volunteerCombo = UITheme.createComboBox();
+        disasterCombo = UITheme.createComboBox();
+        roleField = UITheme.createTextField();
+        shiftField = UITheme.createTextField();
 
-        addVolunteerIdField = new JTextField();
-        addDisasterIdField = new JTextField();
-        addRoleField = new JTextField();
-        addShiftField = new JTextField();
+        formGrid.add(new JLabel("Volunteer [FK]:"));
+        formGrid.add(volunteerCombo);
+        formGrid.add(new JLabel("Disaster Event [FK]:"));
+        formGrid.add(disasterCombo);
+        formGrid.add(new JLabel("Operational Role:"));
+        formGrid.add(roleField);
+        formGrid.add(new JLabel("Shift Timing:"));
+        formGrid.add(shiftField);
 
-        addFormField(formPanel, "Volunteer ID:", addVolunteerIdField);
-        addFormField(formPanel, "Disaster ID:", addDisasterIdField);
-        addFormField(formPanel, "Role:", addRoleField);
-        addFormField(formPanel, "Shift Timing:", addShiftField);
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 8, 8));
+        buttonPanel.setOpaque(false);
 
-        // Wrap form panel in scroll pane
-        JScrollPane scrollPane = new JScrollPane(formPanel);
-        scrollPane.setBorder(null);
-        scrollPane.setBackground(CARD_BG);
-        scrollPane.getViewport().setBackground(CARD_BG);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        JButton saveBtn = UITheme.createPrimaryButton("💾 Assign / Update", UITheme.ACCENT_BLUE, UITheme.ACCENT_HOVER);
+        JButton deleteBtn = UITheme.createPrimaryButton("🗑 Remove Deployment", UITheme.DANGER_RED, UITheme.DANGER_HOVER);
+        JButton clearBtn = UITheme.createPrimaryButton("🔄 Clear Form", new Color(100, 116, 139), new Color(71, 85, 105));
+        JButton refreshBtn = UITheme.createPrimaryButton("⟳ Reload", UITheme.PRIMARY_DARK, UITheme.PRIMARY_NAVY);
 
-        JButton addBtn = createStyledButton("➕ Add Assignment", BLUE_BTN);
-        addBtn.addActionListener(e -> insertAssignment());
-
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(scrollPane, BorderLayout.CENTER);
-        card.add(addBtn, BorderLayout.SOUTH);
-
-        return card;
-    }
-
-    private JPanel createUpdateCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(ORANGE, 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-
-        JLabel titleLabel = new JLabel("Update Assignment");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(ORANGE);
-
-        JPanel formPanel = new JPanel(new GridLayout(4, 2, 10, 12));
-        formPanel.setBackground(CARD_BG);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
-
-        updateVolunteerIdField = new JTextField();
-        updateDisasterIdField = new JTextField();
-        updateRoleField = new JTextField();
-        updateShiftField = new JTextField();
-
-        addFormField(formPanel, "Volunteer ID:", updateVolunteerIdField);
-        addFormField(formPanel, "Disaster ID:", updateDisasterIdField);
-        addFormField(formPanel, "New Role:", updateRoleField);
-        addFormField(formPanel, "New Shift:", updateShiftField);
-
-        // Wrap form in scroll pane
-        JScrollPane scrollPane = new JScrollPane(formPanel);
-        scrollPane.setBorder(null);
-        scrollPane.setBackground(CARD_BG);
-        scrollPane.getViewport().setBackground(CARD_BG);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-        JButton updateBtn = createStyledButton("🔄 Update Assignment", ORANGE);
-        updateBtn.addActionListener(e -> updateAssignment());
-
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(scrollPane, BorderLayout.CENTER);
-        card.add(updateBtn, BorderLayout.SOUTH);
-
-        return card;
-    }
-
-    private JPanel createDeleteCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(RED, 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-
-        JLabel titleLabel = new JLabel("Delete Assignment");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(RED);
-
-        JPanel formPanel = new JPanel(new GridLayout(2, 2, 10, 12));
-        formPanel.setBackground(CARD_BG);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 40, 0));
-
-        deleteVolunteerIdField = new JTextField();
-        deleteDisasterIdField = new JTextField();
-
-        addFormField(formPanel, "Volunteer ID:", deleteVolunteerIdField);
-        addFormField(formPanel, "Disaster ID:", deleteDisasterIdField);
-
-        // Wrap form in scroll pane
-        JScrollPane scrollPane = new JScrollPane(formPanel);
-        scrollPane.setBorder(null);
-        scrollPane.setBackground(CARD_BG);
-        scrollPane.getViewport().setBackground(CARD_BG);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-        JButton deleteBtn = createStyledButton("🗑️ Delete Assignment", RED);
+        saveBtn.addActionListener(e -> saveAssignment());
         deleteBtn.addActionListener(e -> deleteAssignment());
-        deleteBtn.setBorder(BorderFactory.createEmptyBorder(12, 0, 12, 0));
+        clearBtn.addActionListener(e -> clearForm());
+        refreshBtn.addActionListener(e -> { loadCombos(); loadData(); });
 
-        JPanel btnWrapper = new JPanel(new BorderLayout());
-        btnWrapper.setBackground(CARD_BG);
-        btnWrapper.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
-        btnWrapper.add(deleteBtn, BorderLayout.CENTER);
+        buttonPanel.add(saveBtn);
+        buttonPanel.add(deleteBtn);
+        buttonPanel.add(clearBtn);
+        buttonPanel.add(refreshBtn);
 
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(scrollPane, BorderLayout.CENTER);
-        card.add(btnWrapper, BorderLayout.SOUTH);
+        JPanel formWrapper = new JPanel(new BorderLayout(0, 15));
+        formWrapper.setOpaque(false);
+        formWrapper.add(formGrid, BorderLayout.NORTH);
+        formWrapper.add(buttonPanel, BorderLayout.SOUTH);
 
-        return card;
-    }
+        formCard.add(formWrapper, BorderLayout.CENTER);
+        contentPanel.add(formCard, BorderLayout.WEST);
 
-    private JPanel createDisplayPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 15));
-        panel.setBackground(CARD_BG);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
+        // Right Table Card
+        JPanel tableCard = UITheme.createCard("Active Volunteer Deployments", UITheme.PRIMARY_DARK);
 
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(CARD_BG);
+        // Search Bar
+        JPanel searchBar = new JPanel(new BorderLayout(8, 0));
+        searchBar.setOpaque(false);
+        searchField = UITheme.createTextField();
+        JButton searchBtn = UITheme.createPrimaryButton("🔍 Search", UITheme.PRIMARY_DARK, UITheme.PRIMARY_NAVY);
+        JButton resetBtn = UITheme.createPrimaryButton("Show All", new Color(100, 116, 139), new Color(71, 85, 105));
 
-        JLabel titleLabel = new JLabel("Volunteer Assignments");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        titleLabel.setForeground(new Color(30, 58, 138));
+        searchBtn.addActionListener(e -> searchRecords());
+        resetBtn.addActionListener(e -> { searchField.setText(""); loadData(); });
 
-        JButton refreshBtn = createStyledButton("🔄 Refresh Records", BLUE_BTN);
-        refreshBtn.addActionListener(e -> displayAssignments());
-        refreshBtn.setPreferredSize(new Dimension(200, 40));
+        JPanel searchBtnBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        searchBtnBox.setOpaque(false);
+        searchBtnBox.add(searchBtn);
+        searchBtnBox.add(resetBtn);
 
-        headerPanel.add(titleLabel, BorderLayout.WEST);
-        headerPanel.add(refreshBtn, BorderLayout.EAST);
+        searchBar.add(new JLabel("Search Deployments: "), BorderLayout.WEST);
+        searchBar.add(searchField, BorderLayout.CENTER);
+        searchBar.add(searchBtnBox, BorderLayout.EAST);
 
-        outputArea = new JTextArea();
-        outputArea.setEditable(false);
-        outputArea.setFont(new Font("Consolas", Font.PLAIN, 13));
-        outputArea.setBackground(new Color(249, 250, 251));
-        outputArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        // Table
+        String[] columns = {"Vol ID", "Volunteer Name", "Disaster ID", "Disaster Type", "Role", "Shift Timing"};
+        tableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+        table = new JTable(tableModel);
+        UITheme.styleTable(table);
 
-        JScrollPane scrollPane = new JScrollPane(outputArea);
-        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = table.getSelectedRow();
+                if (row >= 0) {
+                    int vId = Integer.parseInt(tableModel.getValueAt(row, 0).toString());
+                    int dId = Integer.parseInt(tableModel.getValueAt(row, 2).toString());
+                    String role = tableModel.getValueAt(row, 4).toString();
+                    String shift = tableModel.getValueAt(row, 5).toString();
 
-        panel.add(headerPanel, BorderLayout.NORTH);
-        panel.add(scrollPane, BorderLayout.CENTER);
+                    selectedVolunteerId = vId;
+                    selectedDisasterId = dId;
 
-        return panel;
-    }
-
-    private void addFormField(JPanel panel, String label, JTextField field) {
-        JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lbl.setForeground(new Color(55, 65, 81));
-
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        field.setForeground(Color.BLACK);
-        field.setBackground(Color.WHITE);
-        field.setCaretColor(Color.BLACK);
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(8, 10, 8, 10)
-        ));
-
-        panel.add(lbl);
-        panel.add(field);
-    }
-
-    private JButton createStyledButton(String text, Color bgColor) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setForeground(Color.WHITE);
-        btn.setBackground(bgColor);
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
-
-        btn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                btn.setBackground(bgColor.darker());
-            }
-            public void mouseExited(MouseEvent e) {
-                btn.setBackground(bgColor);
+                    selectVolunteerInCombo(vId);
+                    selectDisasterInCombo(dId);
+                    roleField.setText(role);
+                    shiftField.setText(shift);
+                }
             }
         });
 
-        return btn;
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_GRAY));
+
+        JPanel tableContainer = new JPanel(new BorderLayout(0, 10));
+        tableContainer.setOpaque(false);
+        tableContainer.add(searchBar, BorderLayout.NORTH);
+        tableContainer.add(scrollPane, BorderLayout.CENTER);
+
+        tableCard.add(tableContainer, BorderLayout.CENTER);
+        contentPanel.add(tableCard, BorderLayout.CENTER);
+
+        add(contentPanel, BorderLayout.CENTER);
+
+        loadCombos();
+        loadData();
     }
 
-    private void insertAssignment() {
-        try {
-            if (addVolunteerIdField.getText().isEmpty() || addDisasterIdField.getText().isEmpty() ||
-                    addRoleField.getText().isEmpty() || addShiftField.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "⚠️ Please fill all fields!");
-                return;
-            }
+    private void loadCombos() {
+        volunteerCombo.removeAllItems();
+        disasterCombo.removeAllItems();
 
-            PreparedStatement pst = con.prepareStatement(
-                    "INSERT INTO Volunteer_Assignments VALUES (?, ?, ?, ?)");
-            pst.setInt(1, Integer.parseInt(addVolunteerIdField.getText()));
-            pst.setInt(2, Integer.parseInt(addDisasterIdField.getText()));
-            pst.setString(3, addRoleField.getText());
-            pst.setString(4, addShiftField.getText());
-            pst.executeUpdate();
-            JOptionPane.showMessageDialog(this, "✅ Assignment inserted successfully!");
-            clearAddFields();
-            displayAssignments();
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please enter valid numbers for IDs!");
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error: " + ex.getMessage());
+        try {
+            List<ComboItem> volunteers = VolunteerDAO.getComboItems();
+            for (ComboItem item : volunteers) volunteerCombo.addItem(item);
+
+            List<ComboItem> disasters = DisasterDAO.getComboItems();
+            for (ComboItem item : disasters) disasterCombo.addItem(item);
+        } catch (Exception e) {
+            System.err.println("Error loading assignment combos: " + e.getMessage());
         }
     }
 
-    private void displayAssignments() {
-        try {
-            Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery("SELECT * FROM Volunteer_Assignments");
-            outputArea.setText(String.format("%-15s %-15s %-25s %-25s\n",
-                    "Volunteer_ID", "Disaster_ID", "Role", "Shift_Timing"));
-            outputArea.append("─".repeat(85) + "\n");
-            while (rs.next()) {
-                outputArea.append(String.format("%-15d %-15d %-25s %-25s\n",
-                        rs.getInt(1), rs.getInt(2), rs.getString(3), rs.getString(4)));
+    private void selectVolunteerInCombo(int volunteerId) {
+        for (int i = 0; i < volunteerCombo.getItemCount(); i++) {
+            ComboItem item = volunteerCombo.getItemAt(i);
+            if (item != null && item.getId() == volunteerId) {
+                volunteerCombo.setSelectedIndex(i);
+                break;
             }
-            rs.close();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error displaying assignments!");
-            ex.printStackTrace();
         }
     }
 
-    private void updateAssignment() {
+    private void selectDisasterInCombo(int disasterId) {
+        for (int i = 0; i < disasterCombo.getItemCount(); i++) {
+            ComboItem item = disasterCombo.getItemAt(i);
+            if (item != null && item.getId() == disasterId) {
+                disasterCombo.setSelectedIndex(i);
+                break;
+            }
+        }
+    }
+
+    private void loadData() {
+        tableModel.setRowCount(0);
         try {
-            if (updateVolunteerIdField.getText().isEmpty() || updateDisasterIdField.getText().isEmpty() ||
-                    updateRoleField.getText().isEmpty() || updateShiftField.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "⚠️ Please fill all fields!");
-                return;
+            List<VolunteerAssignment> list = VolunteerAssignmentDAO.getAll();
+            for (VolunteerAssignment va : list) {
+                tableModel.addRow(new Object[]{
+                        va.getVolunteerId(),
+                        va.getVolunteerName(),
+                        va.getDisasterId(),
+                        va.getDisasterType(),
+                        va.getRole(),
+                        va.getShiftTiming()
+                });
             }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error loading assignments: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
 
-            PreparedStatement pst = con.prepareStatement(
-                    "UPDATE Volunteer_Assignments SET role = ?, shift_timing = ? WHERE volunteer_id = ? AND disaster_id = ?");
-            pst.setString(1, updateRoleField.getText());
-            pst.setString(2, updateShiftField.getText());
-            pst.setInt(3, Integer.parseInt(updateVolunteerIdField.getText()));
-            pst.setInt(4, Integer.parseInt(updateDisasterIdField.getText()));
-            int rows = pst.executeUpdate();
+    private void searchRecords() {
+        String kw = searchField.getText().trim();
+        if (kw.isEmpty()) { loadData(); return; }
 
-            if (rows > 0) {
-                JOptionPane.showMessageDialog(this, "✅ Assignment updated successfully!");
-                clearUpdateFields();
-                displayAssignments();
-            } else {
-                JOptionPane.showMessageDialog(this, "❌ Assignment not found!");
+        tableModel.setRowCount(0);
+        try {
+            List<VolunteerAssignment> list = VolunteerAssignmentDAO.search(kw);
+            for (VolunteerAssignment va : list) {
+                tableModel.addRow(new Object[]{
+                        va.getVolunteerId(),
+                        va.getVolunteerName(),
+                        va.getDisasterId(),
+                        va.getDisasterType(),
+                        va.getRole(),
+                        va.getShiftTiming()
+                });
             }
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please enter valid numbers for IDs!");
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error updating assignment: " + ex.getMessage());
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error searching assignments: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void saveAssignment() {
+        ComboItem selectedVolunteer = (ComboItem) volunteerCombo.getSelectedItem();
+        ComboItem selectedDisaster = (ComboItem) disasterCombo.getSelectedItem();
+        String role = roleField.getText().trim();
+        String shift = shiftField.getText().trim();
+
+        if (selectedVolunteer == null || selectedDisaster == null || role.isEmpty() || shift.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please select a Volunteer, a Disaster, and enter Role and Shift Timing.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        try {
+            if (VolunteerAssignmentDAO.saveOrUpdate(selectedVolunteer.getId(), selectedDisaster.getId(), role, shift)) {
+                JOptionPane.showMessageDialog(this, "Volunteer assignment saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                clearForm();
+                loadData();
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error saving assignment: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void deleteAssignment() {
-        try {
-            if (deleteVolunteerIdField.getText().isEmpty() || deleteDisasterIdField.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "⚠️ Please enter both IDs!");
-                return;
+        if (selectedVolunteerId == null || selectedDisasterId == null) {
+            JOptionPane.showMessageDialog(this, "Please select an assignment record from the table to delete.", "Selection Required", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int confirm = JOptionPane.showConfirmDialog(this,
+                "Are you sure you want to remove this volunteer deployment (Volunteer ID: " + selectedVolunteerId + ", Disaster ID: " + selectedDisasterId + ")?",
+                "Confirm Deletion", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                if (VolunteerAssignmentDAO.delete(selectedVolunteerId, selectedDisasterId)) {
+                    JOptionPane.showMessageDialog(this, "Deployment record removed successfully.", "Deleted", JOptionPane.INFORMATION_MESSAGE);
+                    clearForm();
+                    loadData();
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error removing assignment: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
             }
-
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "Are you sure you want to delete this assignment?",
-                    "Confirm Delete", JOptionPane.YES_NO_OPTION);
-
-            if (confirm != JOptionPane.YES_OPTION) return;
-
-            PreparedStatement pst = con.prepareStatement(
-                    "DELETE FROM Volunteer_Assignments WHERE volunteer_id = ? AND disaster_id = ?");
-            pst.setInt(1, Integer.parseInt(deleteVolunteerIdField.getText()));
-            pst.setInt(2, Integer.parseInt(deleteDisasterIdField.getText()));
-            int rows = pst.executeUpdate();
-
-            if (rows > 0) {
-                JOptionPane.showMessageDialog(this, "🗑️ Deleted successfully!");
-                clearDeleteFields();
-                displayAssignments();
-            } else {
-                JOptionPane.showMessageDialog(this, "❌ Assignment not found!");
-            }
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please enter valid numbers for IDs!");
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error deleting assignment: " + ex.getMessage());
         }
     }
 
-    private void clearAddFields() {
-        addVolunteerIdField.setText("");
-        addDisasterIdField.setText("");
-        addRoleField.setText("");
-        addShiftField.setText("");
-    }
-
-    private void clearUpdateFields() {
-        updateVolunteerIdField.setText("");
-        updateDisasterIdField.setText("");
-        updateRoleField.setText("");
-        updateShiftField.setText("");
-    }
-
-    private void clearDeleteFields() {
-        deleteVolunteerIdField.setText("");
-        deleteDisasterIdField.setText("");
+    private void clearForm() {
+        roleField.setText("");
+        shiftField.setText("");
+        selectedVolunteerId = null;
+        selectedDisasterId = null;
+        if (volunteerCombo.getItemCount() > 0) volunteerCombo.setSelectedIndex(0);
+        if (disasterCombo.getItemCount() > 0) disasterCombo.setSelectedIndex(0);
+        table.clearSelection();
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            VolunteerAssignmentsUI ui = new VolunteerAssignmentsUI();
-            ui.setVisible(true);
-        });
+        SwingUtilities.invokeLater(() -> new Volunteer_AssignmentsUI().setVisible(true));
     }
 }

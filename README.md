@@ -1,132 +1,115 @@
-﻿# Disaster Management System
+# Disaster Management System (DBMS 3NF Project)
 
-A Java Swing desktop application for coordinating disaster response operations. The system manages disasters, victims, shelters, volunteers, resources, shelter inventory, and incident reports using a MySQL database backend.
-
-Demo Video: https://drive.google.com/file/d/1cFpz6FmkIeaVo-H-PHHhfl2engojQXx-/view
+A complete, normalized **3NF Relational Database Management System** for disaster coordination, emergency shelters, supply logistics, victim registration, volunteer mobilization, and field incident logging.
 
 ---
 
-## Features
+## 1. Database Architecture (8 Core 3NF Tables)
 
-* **Disaster Management** – create, update, delete, and view disaster records
-* **Victim Management** – register victims, assign shelters, and store medical requirements
-* **Shelter Management** – track shelter capacity, coordinators, and linked disasters
-* **Volunteer Management** – maintain volunteer profiles, skills, and disaster assignments
-* **Resource Management** – manage relief supplies and their locations
-* **Shelter Inventory** – monitor resource allocation across shelters
-* **Incident Reporting** – record field incidents linked to disasters and volunteers
-* **Dashboard UI** – centralized navigation for all modules
-
----
-
-## Tech Stack
-
-| Component   | Technology              |
-| ----------- | ----------------------- |
-| Language    | Java                    |
-| UI          | Java Swing              |
-| Database    | MySQL                   |
-| JDBC Driver | MySQL Connector/J 9.4.0 |
-
----
-
-## Project Structure
-
-```text
-Disaster-Management-System/
-├── ERD_Normalisation/
-│   ├── ER_diagram.jpeg
-│   └── Normalisation_file.pdf
-├── lib/
-│   └── mysql-connector-j-9.4.0.jar
-├── src/
-│   ├── DisasterManagement.java
-│   ├── DashboardUI.java
-│   ├── DatabaseConnection.java
-│   ├── SplashScreen.java
-│   ├── DisasterUI.java
-│   ├── VictimUI.java
-│   ├── ShelterUI.java
-│   ├── VolunteerUI.java
-│   ├── Volunteer_AssignmentsUI.java
-│   ├── ResourceUI.java
-│   ├── ShelterInventoryUI.java
-│   ├── IncidentReportUI.java
-│   ├── TestConnection.java
-│   └── qr_code.png
-└── DisasterM Queries and solution .pdf
+```
+                       ┌──────────────┐
+                       │   DISASTER   │
+                       └──────┬───────┘
+                              │
+     ┌────────────────────────┼────────────────────────┬──────────────────────┐
+     │ 1:M                    │ 1:M                    │ 1:M                  │ 1:M
+     ▼                        ▼                        ▼                      ▼
+┌──────────┐            ┌───────────┐           ┌──────────────┐     ┌──────────────────────┐
+│  VICTIM  │◄───────────┤  SHELTER  │           │INCIDENT_REPORT│    │ VOLUNTEER_ASSIGNMENT │
+└──────────┘  1:M       └─────┬─────┘           └──────┬───────┘     └──────────┬───────────┘
+                              │ 1:M                    │ M:1                    │ M:1
+                              ▼                        │                        ▼
+                     ┌─────────────────┐               │                  ┌───────────┐
+                     │SHELTER_INVENTORY│               └─────────────────►│ VOLUNTEER │
+                     └────────┬────────┘                                  └───────────┘
+                              │ M:1
+                              ▼
+                        ┌──────────┐
+                        │ RESOURCE │
+                        └──────────┘
 ```
 
+### Table Definitions & Primary Keys
+
+1. **`DISASTER`**
+   - `disaster_id` (**PK**, Auto Increment)
+   - `disaster_type`, `location`, `start_date`, `end_date`, `severity`
+2. **`SHELTER`**
+   - `shelter_id` (**PK**, Auto Increment)
+   - `shelter_name`, `address`, `capacity`, `coordinator_name`, `contact_number`
+   - `disaster_id` (**FK** → `DISASTER`)
+3. **`VICTIM`**
+   - `victim_id` (**PK**, Auto Increment)
+   - `name`, `age`, `gender`, `contact_number`, `medical_condition`
+   - `disaster_id` (**FK** → `DISASTER`), `shelter_id` (**FK** → `SHELTER`)
+4. **`RESOURCE`**
+   - `resource_id` (**PK**, Auto Increment)
+   - `resource_name` (UNIQUE), `description`, `unit`
+5. **`SHELTER_INVENTORY`** *(Junction Table resolving SHELTER M:N RESOURCE)*
+   - `shelter_id` (**PK, FK** → `SHELTER`), `resource_id` (**PK, FK** → `RESOURCE`)
+   - `quantity`
+   - **Composite Primary Key:** `(shelter_id, resource_id)`
+6. **`VOLUNTEER`**
+   - `volunteer_id` (**PK**, Auto Increment)
+   - `name`, `age`, `gender`, `contact_number`, `skills`, `availability_status`
+7. **`VOLUNTEER_ASSIGNMENT`** *(Junction Table resolving VOLUNTEER M:N DISASTER)*
+   - `volunteer_id` (**PK, FK** → `VOLUNTEER`), `disaster_id` (**PK, FK** → `DISASTER`)
+   - `role`, `shift_timing`
+   - **Composite Primary Key:** `(volunteer_id, disaster_id)`
+8. **`INCIDENT_REPORT`**
+   - `report_id` (**PK**, Auto Increment)
+   - `description`, `report_time`, `report_type`, `status`
+   - `disaster_id` (**FK** → `DISASTER`), `volunteer_id` (**FK** → `VOLUNTEER`)
+
 ---
 
-## Database Setup
+## 2. Quick Setup Guide
 
-Run the SQL queries provided in:
-
-```text
-DisasterM Queries and solution .pdf
+### Step 1: Import Database in MySQL
+Open MySQL Workbench, MySQL CLI, or phpMyAdmin and execute:
+```sql
+SOURCE database/schema.sql;
+SOURCE database/seed.sql;
 ```
-
-This creates the `disaster_management_system` database and all required tables.
-
-The ER diagram and normalization details are available in the `ERD_Normalisation/` folder.
-
----
-
-## Configuration
-
-Update the database credentials in `src/DatabaseConnection.java`:
-
-```java
-private static final String URL = "jdbc:mysql://localhost:3306/disaster_management_system";
-private static final String USER = "your_username";
-private static final String PASSWORD = "your_password";
-```
-
----
-
-## Compile and Run
-
-### Compile
-
+Or via terminal:
 ```bash
-javac -cp lib/mysql-connector-j-9.4.0.jar -d out src/*.java
+mysql -u root -p < database/schema.sql
+mysql -u root -p disaster_management < database/seed.sql
 ```
 
-### Run the Application
+### Step 2: Configure Database Credentials
+You can configure your password directly in:
+1. `db.properties` file:
+   ```properties
+   db.host=localhost
+   db.port=3306
+   db.name=disaster_management
+   db.user=root
+   db.password=YOUR_MYSQL_PASSWORD
+   ```
+2. Or open the GUI and click **"⚙ DB Settings"** in the top right corner of the dashboard!
 
-**Windows**
-
-```bash
-java -cp "out;lib/mysql-connector-j-9.4.0.jar" DisasterManagement
-```
-
-**Linux / macOS**
-
-```bash
-java -cp "out:lib/mysql-connector-j-9.4.0.jar" DisasterManagement
-```
-
-### Test Database Connectivity
-
-**Windows**
-
-```bash
-java -cp "out;lib/mysql-connector-j-9.4.0.jar" TestConnection
-```
-
-**Linux / macOS**
-
-```bash
-java -cp "out:lib/mysql-connector-j-9.4.0.jar" TestConnection
-```
+### Step 3: Run the Application
+- **GUI Mode**: Double-click `run_gui.bat` or run:
+  ```bash
+  javac -cp ".;lib/mysql-connector-j.jar" -d bin *.java
+  java -cp "bin;lib/mysql-connector-j.jar" DisasterManagement
+  ```
+- **CLI Mode**: Double-click `run_cli.bat` or run:
+  ```bash
+  java -cp "bin;lib/mysql-connector-j.jar" ManagementSystem
+  ```
 
 ---
 
-## Contributors
-- Aditi Singnurkar – @aditisingnurkar
-- Jui Baviskar – @Jui-baviskar
-- Ankita Nahire – @ankitanahire
-- Bhoomi Shekapure - @bhoomishekapure
+## 3. Key DBMS Features for Viva Presentation
 
-
+- **Live SQL Dashboard Metrics:** Total Disasters, Victims, Shelters, Volunteers, Inventory Stock, and Open Incidents are computed directly using `COUNT()`, `SUM()`, and `GROUP BY` queries in MySQL.
+- **Interactive DBMS Query Runner (`DBMSQueryRunnerUI`):** Demonstrates 10+ preset SQL queries (Multi-table 3NF JOINs, Subqueries, Group By with Having, Aggregations) during your project presentation.
+- **Foreign Key Dropdowns (`JComboBox<ComboItem>`):** Ensures users select existing entities without typing raw IDs.
+- **Business Rule Enforcement:** Incident reports validate volunteer assignment to the selected disaster.
+- **Complete SQL Script Files:**
+  - `database/schema.sql` (Full DDL with constraints and indexes)
+  - `database/seed.sql` (Realistic sample data)
+  - `database/queries.sql` (25+ demonstration queries)
+  - `database/normalization_and_viva_guide.md` (Detailed 1NF → 2NF → 3NF breakdown and Viva Q&A)

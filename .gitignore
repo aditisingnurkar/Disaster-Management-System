@@ -1,31 +1,13 @@
-# Compiled Java files
 *.class
-
-# Build folders
-target/
-build/
-out/
 bin/
-
-# IntelliJ IDEA
+out/
+build/
+target/
 .idea/
 *.iml
-
-# VS Code
 .vscode/
-
-# Eclipse
-.project
-.classpath
 .settings/
-
-# OS files
-.DS_Store
+.classpath
+.project
 Thumbs.db
-
-# Environment / secrets
-.env
-*.env
-
-# Logs
-*.log
+.DS_Store

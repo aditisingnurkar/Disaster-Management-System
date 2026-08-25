@@ -1,130 +1,62 @@
-import java.sql.*;
-import java.util.*;
+public class Victim {
+    private int victimId;
+    private String name;
+    private int age;
+    private String gender;
+    private String contactNumber;
+    private String medicalCondition;
+    private int disasterId;
+    private Integer shelterId; // nullable
 
-class Victim {
+    public Victim() {}
 
-    public void insertVictim(Connection con, Scanner sc) {
-        try {
-            System.out.print("Victim_ID: ");
-            int victim_id = sc.nextInt();
-            sc.nextLine();
-
-            System.out.print("Name: ");
-            String name = sc.nextLine();
-
-            System.out.print("Age: ");
-            int age = sc.nextInt();
-            sc.nextLine();
-
-            System.out.print("Contact: ");
-            String contact = sc.nextLine();
-
-            System.out.print("Disaster_ID: ");
-            int disaster_id = sc.nextInt();
-
-            System.out.print("Shelter_ID: ");
-            int shelter_id = sc.nextInt();
-
-            System.out.print("Medical Needs: ");
-            String needs = sc.nextLine();
-
-            String query1 = "INSERT INTO Victim VALUES (?, ?, ?, ?, ?, ?, ?)";
-            PreparedStatement pst1 = con.prepareStatement(query1);
-            pst1.setInt(1, victim_id);
-            pst1.setString(2, name);
-            pst1.setInt(3, age);
-            pst1.setString(4, contact);
-            pst1.setInt(5, disaster_id);
-            pst1.setInt(6, shelter_id);
-            pst1.setString(7, needs);
-            pst1.executeUpdate();
-            System.out.println("Record inserted successfully!");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public Victim(int victimId, String name, int age, String gender, String contactNumber, String medicalCondition, int disasterId, Integer shelterId) {
+        this.victimId = victimId;
+        this.name = name;
+        this.age = age;
+        this.gender = gender;
+        this.contactNumber = contactNumber;
+        this.medicalCondition = medicalCondition;
+        this.disasterId = disasterId;
+        this.shelterId = shelterId;
     }
 
-    public void displayVictim(Connection con) {
-        try {
-            Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery("SELECT * FROM Victim");
-
-            System.out.println("\nVictim_ID | Name | Age | Contact | Disaster_ID | Shelter_ID | Medical_Needs");
-            while (rs.next()) {
-                System.out.println(rs.getInt(1) + " | " + rs.getString(2) + " | " +
-                        rs.getInt(3) + " | " + rs.getString(4) + " | " +
-                        rs.getInt(5) + " | " + rs.getInt(6) + rs.getString(7));
-            }
-            rs.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public Victim(String name, int age, String gender, String contactNumber, String medicalCondition, int disasterId, Integer shelterId) {
+        this.name = name;
+        this.age = age;
+        this.gender = gender;
+        this.contactNumber = contactNumber;
+        this.medicalCondition = medicalCondition;
+        this.disasterId = disasterId;
+        this.shelterId = shelterId;
     }
 
-    public void updateAge(Connection con, Scanner sc) {
-        try {
-            System.out.print("Enter Victim_ID to update age: ");
-            int IDUpdate = sc.nextInt();
-            sc.nextLine();
+    public int getVictimId() { return victimId; }
+    public void setVictimId(int victimId) { this.victimId = victimId; }
 
-            System.out.print("Enter new Age: ");
-            int newAge = sc.nextInt();
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
 
-            String query3 = "UPDATE Victim SET age = ? WHERE victim_id = ?";
-            PreparedStatement pst3 = con.prepareStatement(query3);
-            pst3.setInt(1, newAge);
-            pst3.setInt(2, IDUpdate);
-            int rows = pst3.executeUpdate();
+    public int getAge() { return age; }
+    public void setAge(int age) { this.age = age; }
 
-            if (rows > 0)
-                System.out.println("Age updated successfully!");
-            else
-                System.out.println("Victim record not found!");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    public String getGender() { return gender; }
+    public void setGender(String gender) { this.gender = gender; }
 
-    public void updateContact(Connection con, Scanner sc) {
-        try {
-            System.out.print("Enter Victim_ID to update contact: ");
-            int IDUpdate = sc.nextInt();
-            sc.nextLine();
+    public String getContactNumber() { return contactNumber; }
+    public void setContactNumber(String contactNumber) { this.contactNumber = contactNumber; }
 
-            System.out.print("Enter new Contact: ");
-            String newContact = sc.nextLine();
+    public String getMedicalCondition() { return medicalCondition; }
+    public void setMedicalCondition(String medicalCondition) { this.medicalCondition = medicalCondition; }
 
-            String query4 = "UPDATE Victim SET contact = ? WHERE victim_id = ?";
-            PreparedStatement pst4 = con.prepareStatement(query4);
-            pst4.setString(1, newContact);
-            pst4.setInt(2, IDUpdate);
-            int rows = pst4.executeUpdate();
+    public int getDisasterId() { return disasterId; }
+    public void setDisasterId(int disasterId) { this.disasterId = disasterId; }
 
-            if (rows > 0)
-                System.out.println("Contact updated successfully!");
-            else
-                System.out.println("Victim record not found!");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
+    public Integer getShelterId() { return shelterId; }
+    public void setShelterId(Integer shelterId) { this.shelterId = shelterId; }
 
-    public void delete(Connection con, Scanner sc) {
-        try {
-            System.out.print("Enter Victim_ID to delete: ");
-            int IDDelete = sc.nextInt();
-
-            String query5 = "DELETE FROM Victim WHERE victim_id = ?";
-            PreparedStatement pst5 = con.prepareStatement(query5);
-            pst5.setInt(1, IDDelete);
-            int deleted = pst5.executeUpdate();
-
-            if (deleted > 0)
-                System.out.println("Record deleted successfully!");
-            else
-                System.out.println("Record not found!");
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    @Override
+    public String toString() {
+        return "Victim #" + victimId + " (" + name + ", " + age + "y)";
     }
 }

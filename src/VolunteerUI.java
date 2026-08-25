@@ -1,393 +1,329 @@
 import javax.swing.*;
-import javax.swing.border.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.*;
-import java.sql.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.List;
 
 public class VolunteerUI extends JFrame {
-    private JTextField addIdField, addNameField, addAvailabilityField;
-    private JTextField updateIdField, updateAvailabilityField;
-    private JTextField deleteIdField;
-    private JTextArea outputArea;
-    private Connection con;
 
-    // Modern color scheme
-    private final Color PRIMARY_BLUE = new Color(30, 58, 138);
-    private final Color LIGHT_BG = new Color(249, 250, 251);
-    private final Color CARD_BG = Color.WHITE;
-    private final Color ORANGE = new Color(249, 115, 22);
-    private final Color RED = new Color(239, 68, 68);
-    private final Color BLUE_BTN = new Color(37, 99, 235);
-    private final Color BORDER_COLOR = new Color(229, 231, 235);
+    private JTextField idField, nameField, ageField, contactField, skillsField, searchField;
+    private JComboBox<String> genderCombo;
+    private JComboBox<String> statusCombo;
+    private JTable table;
+    private DefaultTableModel tableModel;
 
     public VolunteerUI() {
-        setTitle("Volunteer Management System");
-        setSize(1400, 800);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setTitle("Volunteer Registry - Personnel & Skill Management");
+        setSize(1200, 720);
         setLocationRelativeTo(null);
-
-        try {
-            con = DatabaseConnection.getConnection();
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Database connection failed!");
-            e.printStackTrace();
-            return;
-        }
-
-        // Main container with light background
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(LIGHT_BG);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout());
 
         // Header
-        JPanel header = createHeader();
-        mainPanel.add(header, BorderLayout.NORTH);
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(UITheme.PRIMARY_DARK);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 25, 15, 25));
 
-        // Content area
-        JPanel contentPanel = new JPanel(new BorderLayout(15, 15));
-        contentPanel.setBackground(LIGHT_BG);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        // Top section with three cards
-        JPanel cardsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
-        cardsPanel.setBackground(LIGHT_BG);
-        cardsPanel.setPreferredSize(new Dimension(1400, 320));
-
-        cardsPanel.add(createAddCard());
-        cardsPanel.add(createUpdateCard());
-        cardsPanel.add(createDeleteCard());
-
-        contentPanel.add(cardsPanel, BorderLayout.NORTH);
-
-        // Bottom section - Display area
-        JPanel displayPanel = createDisplayPanel();
-        contentPanel.add(displayPanel, BorderLayout.CENTER);
-
-        mainPanel.add(contentPanel, BorderLayout.CENTER);
-        add(mainPanel);
-    }
-
-    private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(PRIMARY_BLUE);
-        header.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
-
-        JPanel textPanel = new JPanel(new GridLayout(2, 1, 0, 5));
-        textPanel.setBackground(PRIMARY_BLUE);
-
-        JLabel titleLabel = new JLabel("🤝 Volunteer Management System");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        JLabel titleLabel = new JLabel("🤝 Volunteer Personnel Registry");
+        titleLabel.setFont(UITheme.FONT_TITLE);
         titleLabel.setForeground(Color.WHITE);
 
-        JLabel subtitleLabel = new JLabel("Manage and track volunteer information efficiently");
-        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        subtitleLabel.setForeground(new Color(191, 219, 254));
+        JLabel subtitleLabel = new JLabel("Register volunteers, manage response skills, contact channels, and duty availability");
+        subtitleLabel.setFont(UITheme.FONT_BODY);
+        subtitleLabel.setForeground(new Color(203, 213, 225));
 
-        textPanel.add(titleLabel);
-        textPanel.add(subtitleLabel);
-        header.add(textPanel, BorderLayout.WEST);
+        JPanel titleBox = new JPanel(new GridLayout(2, 1, 0, 4));
+        titleBox.setOpaque(false);
+        titleBox.add(titleLabel);
+        titleBox.add(subtitleLabel);
+        headerPanel.add(titleBox, BorderLayout.WEST);
+        add(headerPanel, BorderLayout.NORTH);
 
-        return header;
-    }
+        // Center Content
+        JPanel contentPanel = new JPanel(new BorderLayout(15, 15));
+        contentPanel.setBackground(UITheme.BG_LIGHT);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-    private JPanel createAddCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(59, 130, 246), 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
+        // Left Form Card
+        JPanel formCard = UITheme.createCard("Volunteer Profile", UITheme.PRIMARY_DARK);
+        formCard.setPreferredSize(new Dimension(400, 0));
 
-        JLabel titleLabel = new JLabel("Add New Volunteer Record");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(new Color(59, 130, 246));
+        JPanel formGrid = new JPanel(new GridLayout(7, 2, 8, 12));
+        formGrid.setOpaque(false);
 
-        JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 12));
-        formPanel.setBackground(CARD_BG);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
+        idField = UITheme.createTextField();
+        idField.setEditable(false);
+        idField.setBackground(new Color(241, 245, 249));
 
-        addIdField = new JTextField();
-        addNameField = new JTextField();
-        addAvailabilityField = new JTextField();
+        nameField = UITheme.createTextField();
+        ageField = UITheme.createTextField();
+        contactField = UITheme.createTextField();
+        skillsField = UITheme.createTextField();
 
-        addFormField(formPanel, "Volunteer ID:", addIdField);
-        addFormField(formPanel, "Name:", addNameField);
-        addFormField(formPanel, "Availability:", addAvailabilityField);
+        genderCombo = new JComboBox<>(new String[]{"Male", "Female", "Other"});
+        genderCombo.setFont(UITheme.FONT_BODY);
+        genderCombo.setBackground(Color.WHITE);
 
-        // Wrap form panel in scroll pane
-        JScrollPane scrollPane = new JScrollPane(formPanel);
-        scrollPane.setBorder(null);
-        scrollPane.setBackground(CARD_BG);
-        scrollPane.getViewport().setBackground(CARD_BG);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        statusCombo = new JComboBox<>(new String[]{"Available", "Assigned", "On Leave"});
+        statusCombo.setFont(UITheme.FONT_BODY);
+        statusCombo.setBackground(Color.WHITE);
 
-        JButton addBtn = createStyledButton("➕ Add Record", BLUE_BTN);
-        addBtn.addActionListener(e -> insertVolunteer());
+        formGrid.add(new JLabel("Volunteer ID:"));
+        formGrid.add(idField);
+        formGrid.add(new JLabel("Full Name:"));
+        formGrid.add(nameField);
+        formGrid.add(new JLabel("Age (Min 18):"));
+        formGrid.add(ageField);
+        formGrid.add(new JLabel("Gender:"));
+        formGrid.add(genderCombo);
+        formGrid.add(new JLabel("Contact Number:"));
+        formGrid.add(contactField);
+        formGrid.add(new JLabel("Skills / Expertise:"));
+        formGrid.add(skillsField);
+        formGrid.add(new JLabel("Availability Status:"));
+        formGrid.add(statusCombo);
 
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(scrollPane, BorderLayout.CENTER);
-        card.add(addBtn, BorderLayout.SOUTH);
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 8, 8));
+        buttonPanel.setOpaque(false);
 
-        return card;
-    }
+        JButton addBtn = UITheme.createPrimaryButton("➕ Add Volunteer", UITheme.ACCENT_BLUE, UITheme.ACCENT_HOVER);
+        JButton updateBtn = UITheme.createPrimaryButton("✏ Update", UITheme.WARNING_ORANGE, new Color(217, 119, 6));
+        JButton deleteBtn = UITheme.createPrimaryButton("🗑 Delete", UITheme.DANGER_RED, UITheme.DANGER_HOVER);
+        JButton clearBtn = UITheme.createPrimaryButton("🔄 Clear Form", new Color(100, 116, 139), new Color(71, 85, 105));
 
-    private JPanel createUpdateCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(ORANGE, 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
+        addBtn.addActionListener(e -> addRecord());
+        updateBtn.addActionListener(e -> updateRecord());
+        deleteBtn.addActionListener(e -> deleteRecord());
+        clearBtn.addActionListener(e -> clearForm());
 
-        JLabel titleLabel = new JLabel("Update Record");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(ORANGE);
+        buttonPanel.add(addBtn);
+        buttonPanel.add(updateBtn);
+        buttonPanel.add(deleteBtn);
+        buttonPanel.add(clearBtn);
 
-        JPanel formPanel = new JPanel(new GridLayout(2, 2, 10, 12));
-        formPanel.setBackground(CARD_BG);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 40, 0));
+        JPanel formWrapper = new JPanel(new BorderLayout(0, 15));
+        formWrapper.setOpaque(false);
+        formWrapper.add(formGrid, BorderLayout.NORTH);
+        formWrapper.add(buttonPanel, BorderLayout.SOUTH);
 
-        updateIdField = new JTextField();
-        updateAvailabilityField = new JTextField();
+        formCard.add(formWrapper, BorderLayout.CENTER);
+        contentPanel.add(formCard, BorderLayout.WEST);
 
-        addFormField(formPanel, "Volunteer ID:", updateIdField);
-        addFormField(formPanel, "New Availability:", updateAvailabilityField);
+        // Right Table Card
+        JPanel tableCard = UITheme.createCard("Registered Volunteers Directory", UITheme.PRIMARY_DARK);
 
-        // Wrap form in scroll pane
-        JScrollPane scrollPane = new JScrollPane(formPanel);
-        scrollPane.setBorder(null);
-        scrollPane.setBackground(CARD_BG);
-        scrollPane.getViewport().setBackground(CARD_BG);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        // Search Bar
+        JPanel searchBar = new JPanel(new BorderLayout(8, 0));
+        searchBar.setOpaque(false);
+        searchField = UITheme.createTextField();
+        JButton searchBtn = UITheme.createPrimaryButton("🔍 Search", UITheme.PRIMARY_DARK, UITheme.PRIMARY_NAVY);
+        JButton resetBtn = UITheme.createPrimaryButton("Show All", new Color(100, 116, 139), new Color(71, 85, 105));
 
-        JButton updateBtn = createStyledButton("🔄 Update Availability", ORANGE);
-        updateBtn.addActionListener(e -> updateAvailability());
-        updateBtn.setBorder(BorderFactory.createEmptyBorder(12, 0, 12, 0));
+        searchBtn.addActionListener(e -> searchRecords());
+        resetBtn.addActionListener(e -> { searchField.setText(""); loadData(); });
 
-        JPanel btnWrapper = new JPanel(new BorderLayout());
-        btnWrapper.setBackground(CARD_BG);
-        btnWrapper.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
-        btnWrapper.add(updateBtn, BorderLayout.CENTER);
+        JPanel searchBtnBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        searchBtnBox.setOpaque(false);
+        searchBtnBox.add(searchBtn);
+        searchBtnBox.add(resetBtn);
 
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(scrollPane, BorderLayout.CENTER);
-        card.add(btnWrapper, BorderLayout.SOUTH);
+        searchBar.add(new JLabel("Search Volunteers: "), BorderLayout.WEST);
+        searchBar.add(searchField, BorderLayout.CENTER);
+        searchBar.add(searchBtnBox, BorderLayout.EAST);
 
-        return card;
-    }
+        // Table
+        String[] columns = {"ID", "Name", "Age", "Gender", "Contact", "Skills", "Status"};
+        tableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+        table = new JTable(tableModel);
+        UITheme.styleTable(table);
 
-    private JPanel createDeleteCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(RED, 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-
-        JLabel titleLabel = new JLabel("Delete Record");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(RED);
-
-        JPanel formPanel = new JPanel(new GridLayout(1, 2, 10, 0));
-        formPanel.setBackground(CARD_BG);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 40, 0));
-
-        deleteIdField = new JTextField();
-        addFormField(formPanel, "Volunteer ID:", deleteIdField);
-
-        // Wrap form in scroll pane
-        JScrollPane scrollPane = new JScrollPane(formPanel);
-        scrollPane.setBorder(null);
-        scrollPane.setBackground(CARD_BG);
-        scrollPane.getViewport().setBackground(CARD_BG);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-        JButton deleteBtn = createStyledButton("🗑️ Delete Record", RED);
-        deleteBtn.addActionListener(e -> deleteVolunteer());
-        deleteBtn.setBorder(BorderFactory.createEmptyBorder(12, 0, 12, 0));
-
-        JPanel btnWrapper = new JPanel(new BorderLayout());
-        btnWrapper.setBackground(CARD_BG);
-        btnWrapper.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
-        btnWrapper.add(deleteBtn, BorderLayout.CENTER);
-
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(scrollPane, BorderLayout.CENTER);
-        card.add(btnWrapper, BorderLayout.SOUTH);
-
-        return card;
-    }
-
-    private JPanel createDisplayPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 15));
-        panel.setBackground(CARD_BG);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(CARD_BG);
-
-        JLabel titleLabel = new JLabel("Volunteer Records");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        titleLabel.setForeground(new Color(30, 58, 138));
-
-        JButton refreshBtn = createStyledButton("🔄 Refresh Records", BLUE_BTN);
-        refreshBtn.addActionListener(e -> displayVolunteers());
-        refreshBtn.setPreferredSize(new Dimension(200, 40));
-
-        headerPanel.add(titleLabel, BorderLayout.WEST);
-        headerPanel.add(refreshBtn, BorderLayout.EAST);
-
-        outputArea = new JTextArea();
-        outputArea.setEditable(false);
-        outputArea.setFont(new Font("Consolas", Font.PLAIN, 13));
-        outputArea.setBackground(new Color(249, 250, 251));
-        outputArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        JScrollPane scrollPane = new JScrollPane(outputArea);
-        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
-
-        panel.add(headerPanel, BorderLayout.NORTH);
-        panel.add(scrollPane, BorderLayout.CENTER);
-
-        return panel;
-    }
-
-    private void addFormField(JPanel panel, String label, JTextField field) {
-        JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lbl.setForeground(new Color(55, 65, 81));
-
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        field.setForeground(Color.BLACK);
-        field.setBackground(Color.WHITE);
-        field.setCaretColor(Color.BLACK);
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(8, 10, 8, 10)
-        ));
-
-        panel.add(lbl);
-        panel.add(field);
-    }
-
-    private JButton createStyledButton(String text, Color bgColor) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setForeground(Color.WHITE);
-        btn.setBackground(bgColor);
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
-
-        btn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                btn.setBackground(bgColor.darker());
-            }
-            public void mouseExited(MouseEvent e) {
-                btn.setBackground(bgColor);
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = table.getSelectedRow();
+                if (row >= 0) {
+                    idField.setText(tableModel.getValueAt(row, 0).toString());
+                    nameField.setText(tableModel.getValueAt(row, 1).toString());
+                    ageField.setText(tableModel.getValueAt(row, 2).toString());
+                    genderCombo.setSelectedItem(tableModel.getValueAt(row, 3).toString());
+                    contactField.setText(tableModel.getValueAt(row, 4).toString());
+                    skillsField.setText(tableModel.getValueAt(row, 5).toString());
+                    statusCombo.setSelectedItem(tableModel.getValueAt(row, 6).toString());
+                }
             }
         });
 
-        return btn;
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_GRAY));
+
+        JPanel tableContainer = new JPanel(new BorderLayout(0, 10));
+        tableContainer.setOpaque(false);
+        tableContainer.add(searchBar, BorderLayout.NORTH);
+        tableContainer.add(scrollPane, BorderLayout.CENTER);
+
+        tableCard.add(tableContainer, BorderLayout.CENTER);
+        contentPanel.add(tableCard, BorderLayout.CENTER);
+
+        add(contentPanel, BorderLayout.CENTER);
+
+        loadData();
     }
 
-    private void insertVolunteer() {
+    private void loadData() {
+        tableModel.setRowCount(0);
         try {
-            PreparedStatement pst = con.prepareStatement("INSERT INTO Volunteer VALUES (?, ?, ?)");
-            pst.setInt(1, Integer.parseInt(addIdField.getText()));
-            pst.setString(2, addNameField.getText());
-            pst.setString(3, addAvailabilityField.getText());
-            pst.executeUpdate();
-            JOptionPane.showMessageDialog(this, "✅ Volunteer inserted successfully!");
-            clearAddFields();
-            displayVolunteers();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error: " + ex.getMessage());
-        }
-    }
-
-    private void displayVolunteers() {
-        try {
-            Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery("SELECT * FROM Volunteer");
-            outputArea.setText(String.format("%-15s %-30s %-30s\n",
-                    "Volunteer_ID", "Name", "Availability"));
-            outputArea.append("─".repeat(80) + "\n");
-            while (rs.next()) {
-                outputArea.append(String.format("%-15d %-30s %-30s\n",
-                        rs.getInt(1), rs.getString(2), rs.getString(3)));
+            List<Volunteer> list = VolunteerDAO.getAll();
+            for (Volunteer v : list) {
+                tableModel.addRow(new Object[]{
+                        v.getVolunteerId(),
+                        v.getName(),
+                        v.getAge(),
+                        v.getGender(),
+                        v.getContactNumber(),
+                        v.getSkills(),
+                        v.getAvailabilityStatus()
+                });
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error displaying volunteers!");
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error loading volunteers: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void updateAvailability() {
-        String id = updateIdField.getText();
-        String availability = updateAvailabilityField.getText();
+    private void searchRecords() {
+        String kw = searchField.getText().trim();
+        if (kw.isEmpty()) { loadData(); return; }
 
-        if (id.isEmpty() || availability.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please fill all fields!");
+        tableModel.setRowCount(0);
+        try {
+            List<Volunteer> list = VolunteerDAO.search(kw);
+            for (Volunteer v : list) {
+                tableModel.addRow(new Object[]{
+                        v.getVolunteerId(),
+                        v.getName(),
+                        v.getAge(),
+                        v.getGender(),
+                        v.getContactNumber(),
+                        v.getSkills(),
+                        v.getAvailabilityStatus()
+                });
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error searching: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void addRecord() {
+        try {
+            String name = nameField.getText().trim();
+            String ageStr = ageField.getText().trim();
+            String gender = (String) genderCombo.getSelectedItem();
+            String contact = contactField.getText().trim();
+            String skills = skillsField.getText().trim();
+            String status = (String) statusCombo.getSelectedItem();
+
+            if (name.isEmpty() || ageStr.isEmpty() || contact.isEmpty() || skills.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please fill in Name, Age, Contact, and Skills.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            int age = Integer.parseInt(ageStr);
+            if (age < 18 || age > 100) {
+                JOptionPane.showMessageDialog(this, "Volunteer age must be 18 or above (Check Constraint).", "Age Restriction", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            Volunteer v = new Volunteer(name, age, gender, contact, skills, status);
+            if (VolunteerDAO.insert(v)) {
+                JOptionPane.showMessageDialog(this, "Volunteer registered successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                clearForm();
+                loadData();
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Age must be a valid number.", "Invalid Number", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error adding volunteer: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void updateRecord() {
+        String idStr = idField.getText().trim();
+        if (idStr.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please select a volunteer from the table to update.", "Selection Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         try {
-            PreparedStatement pst = con.prepareStatement(
-                    "UPDATE Volunteer SET availability = ? WHERE volunteer_id = ?");
-            pst.setString(1, availability);
-            pst.setInt(2, Integer.parseInt(id));
-            int rows = pst.executeUpdate();
-            JOptionPane.showMessageDialog(this, rows > 0 ? "✅ Availability updated!" : "❌ Volunteer not found!");
-            if (rows > 0) {
-                clearUpdateFields();
-                displayVolunteers();
+            int id = Integer.parseInt(idStr);
+            String name = nameField.getText().trim();
+            String ageStr = ageField.getText().trim();
+            String gender = (String) genderCombo.getSelectedItem();
+            String contact = contactField.getText().trim();
+            String skills = skillsField.getText().trim();
+            String status = (String) statusCombo.getSelectedItem();
+
+            if (name.isEmpty() || ageStr.isEmpty() || contact.isEmpty() || skills.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please fill in all fields.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error updating availability: " + ex.getMessage());
+
+            int age = Integer.parseInt(ageStr);
+            if (age < 18 || age > 100) {
+                JOptionPane.showMessageDialog(this, "Volunteer age must be 18 or above.", "Age Restriction", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            Volunteer v = new Volunteer(id, name, age, gender, contact, skills, status);
+            if (VolunteerDAO.update(v)) {
+                JOptionPane.showMessageDialog(this, "Volunteer updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                clearForm();
+                loadData();
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error updating volunteer: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void deleteVolunteer() {
-        String id = deleteIdField.getText();
-        if (id.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please enter Volunteer ID!");
+    private void deleteRecord() {
+        String idStr = idField.getText().trim();
+        if (idStr.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please select a volunteer from the table to delete.", "Selection Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Are you sure you want to delete Volunteer ID: " + id + "?",
-                "Confirm Delete", JOptionPane.YES_NO_OPTION);
+                "Are you sure you want to delete Volunteer ID " + idStr + "?\nAssociated assignments and reports will also be removed.",
+                "Confirm Deletion", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
-        if (confirm != JOptionPane.YES_OPTION) return;
-
-        try {
-            PreparedStatement pst = con.prepareStatement("DELETE FROM Volunteer WHERE volunteer_id = ?");
-            pst.setInt(1, Integer.parseInt(id));
-            int rows = pst.executeUpdate();
-            JOptionPane.showMessageDialog(this, rows > 0 ? "🗑️ Deleted successfully!" : "❌ Volunteer not found!");
-            if (rows > 0) {
-                deleteIdField.setText("");
-                displayVolunteers();
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                int id = Integer.parseInt(idStr);
+                if (VolunteerDAO.delete(id)) {
+                    JOptionPane.showMessageDialog(this, "Volunteer deleted successfully.", "Deleted", JOptionPane.INFORMATION_MESSAGE);
+                    clearForm();
+                    loadData();
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error deleting volunteer: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error deleting volunteer: " + ex.getMessage());
         }
     }
 
-    private void clearAddFields() {
-        addIdField.setText("");
-        addNameField.setText("");
-        addAvailabilityField.setText("");
+    private void clearForm() {
+        idField.setText("");
+        nameField.setText("");
+        ageField.setText("");
+        genderCombo.setSelectedIndex(0);
+        contactField.setText("");
+        skillsField.setText("");
+        statusCombo.setSelectedIndex(0);
+        table.clearSelection();
     }
 
-    private void clearUpdateFields() {
-        updateIdField.setText("");
-        updateAvailabilityField.setText("");
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new VolunteerUI().setVisible(true));
     }
 }

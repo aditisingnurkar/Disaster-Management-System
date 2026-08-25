@@ -1,435 +1,281 @@
 import javax.swing.*;
-import javax.swing.border.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.*;
-import java.sql.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.List;
 
 public class ResourceUI extends JFrame {
-    private JTextField addIdField, addNameField, addDescField;
-    private JTextField updateIdField;
-    private JComboBox<String> updateFieldChoice;
-    private JTextField updateValueField;
-    private JTextField deleteIdField;
-    private JTextArea outputArea;
-    private Connection con;
 
-    // Modern color scheme
-    private final Color PRIMARY_BLUE = new Color(30, 58, 138);
-    private final Color LIGHT_BG = new Color(249, 250, 251);
-    private final Color CARD_BG = Color.WHITE;
-    private final Color ORANGE = new Color(249, 115, 22);
-    private final Color RED = new Color(239, 68, 68);
-    private final Color BLUE_BTN = new Color(37, 99, 235);
-    private final Color BORDER_COLOR = new Color(229, 231, 235);
+    private JTextField idField, nameField, descField, unitField, searchField;
+    private JTable table;
+    private DefaultTableModel tableModel;
 
     public ResourceUI() {
-        setTitle("Resource Management System");
-        setSize(1400, 800);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setTitle("Resource Catalog - Relief Supply Master");
+        setSize(1100, 680);
         setLocationRelativeTo(null);
-
-        try {
-            con = DatabaseConnection.getConnection();
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Database connection failed!");
-            e.printStackTrace();
-            return;
-        }
-
-        // Main container with light background
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(LIGHT_BG);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout());
 
         // Header
-        JPanel header = createHeader();
-        mainPanel.add(header, BorderLayout.NORTH);
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(UITheme.PRIMARY_DARK);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 25, 15, 25));
 
-        // Content area
-        JPanel contentPanel = new JPanel(new BorderLayout(15, 15));
-        contentPanel.setBackground(LIGHT_BG);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        // Top section with three cards
-        JPanel cardsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
-        cardsPanel.setBackground(LIGHT_BG);
-        cardsPanel.setPreferredSize(new Dimension(1400, 320));
-
-        cardsPanel.add(createAddCard());
-        cardsPanel.add(createUpdateCard());
-        cardsPanel.add(createDeleteCard());
-
-        contentPanel.add(cardsPanel, BorderLayout.NORTH);
-
-        // Bottom section - Display area
-        JPanel displayPanel = createDisplayPanel();
-        contentPanel.add(displayPanel, BorderLayout.CENTER);
-
-        mainPanel.add(contentPanel, BorderLayout.CENTER);
-        add(mainPanel);
-    }
-
-    private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(PRIMARY_BLUE);
-        header.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
-
-        JPanel textPanel = new JPanel(new GridLayout(2, 1, 0, 5));
-        textPanel.setBackground(PRIMARY_BLUE);
-
-        JLabel titleLabel = new JLabel("📦 Resource Management System");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        JLabel titleLabel = new JLabel("📦 Relief Resources Master Catalog");
+        titleLabel.setFont(UITheme.FONT_TITLE);
         titleLabel.setForeground(Color.WHITE);
 
-        JLabel subtitleLabel = new JLabel("Track and manage disaster relief resources efficiently");
-        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        subtitleLabel.setForeground(new Color(191, 219, 254));
+        JLabel subtitleLabel = new JLabel("Define standard emergency relief items, descriptions, and packaging units");
+        subtitleLabel.setFont(UITheme.FONT_BODY);
+        subtitleLabel.setForeground(new Color(203, 213, 225));
 
-        textPanel.add(titleLabel);
-        textPanel.add(subtitleLabel);
-        header.add(textPanel, BorderLayout.WEST);
+        JPanel titleBox = new JPanel(new GridLayout(2, 1, 0, 4));
+        titleBox.setOpaque(false);
+        titleBox.add(titleLabel);
+        titleBox.add(subtitleLabel);
+        headerPanel.add(titleBox, BorderLayout.WEST);
+        add(headerPanel, BorderLayout.NORTH);
 
-        return header;
-    }
+        // Center Content
+        JPanel contentPanel = new JPanel(new BorderLayout(15, 15));
+        contentPanel.setBackground(UITheme.BG_LIGHT);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-    private JPanel createAddCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(59, 130, 246), 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
+        // Left Form Card
+        JPanel formCard = UITheme.createCard("Resource Item Details", UITheme.PRIMARY_DARK);
+        formCard.setPreferredSize(new Dimension(380, 0));
 
-        JLabel titleLabel = new JLabel("Add New Resource");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(new Color(59, 130, 246));
+        JPanel formGrid = new JPanel(new GridLayout(4, 2, 8, 12));
+        formGrid.setOpaque(false);
 
-        JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 12));
-        formPanel.setBackground(CARD_BG);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
+        idField = UITheme.createTextField();
+        idField.setEditable(false);
+        idField.setBackground(new Color(241, 245, 249));
 
-        addIdField = new JTextField();
-        addNameField = new JTextField();
-        addDescField = new JTextField();
+        nameField = UITheme.createTextField();
+        descField = UITheme.createTextField();
+        unitField = UITheme.createTextField();
 
-        addFormField(formPanel, "Resource ID:", addIdField);
-        addFormField(formPanel, "Resource Name:", addNameField);
-        addFormField(formPanel, "Description:", addDescField);
+        formGrid.add(new JLabel("Resource ID:"));
+        formGrid.add(idField);
+        formGrid.add(new JLabel("Resource Name:"));
+        formGrid.add(nameField);
+        formGrid.add(new JLabel("Description:"));
+        formGrid.add(descField);
+        formGrid.add(new JLabel("Unit (e.g. Bottles/Kits):"));
+        formGrid.add(unitField);
 
-        // Wrap form panel in scroll pane
-        JScrollPane scrollPane = new JScrollPane(formPanel);
-        scrollPane.setBorder(null);
-        scrollPane.setBackground(CARD_BG);
-        scrollPane.getViewport().setBackground(CARD_BG);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 8, 8));
+        buttonPanel.setOpaque(false);
 
-        JButton addBtn = createStyledButton("➕ Add Resource", BLUE_BTN);
-        addBtn.addActionListener(e -> insertResource());
+        JButton addBtn = UITheme.createPrimaryButton("➕ Add Resource", UITheme.ACCENT_BLUE, UITheme.ACCENT_HOVER);
+        JButton updateBtn = UITheme.createPrimaryButton("✏ Update", UITheme.WARNING_ORANGE, new Color(217, 119, 6));
+        JButton deleteBtn = UITheme.createPrimaryButton("🗑 Delete", UITheme.DANGER_RED, UITheme.DANGER_HOVER);
+        JButton clearBtn = UITheme.createPrimaryButton("🔄 Clear Form", new Color(100, 116, 139), new Color(71, 85, 105));
 
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(scrollPane, BorderLayout.CENTER);
-        card.add(addBtn, BorderLayout.SOUTH);
+        addBtn.addActionListener(e -> addRecord());
+        updateBtn.addActionListener(e -> updateRecord());
+        deleteBtn.addActionListener(e -> deleteRecord());
+        clearBtn.addActionListener(e -> clearForm());
 
-        return card;
-    }
+        buttonPanel.add(addBtn);
+        buttonPanel.add(updateBtn);
+        buttonPanel.add(deleteBtn);
+        buttonPanel.add(clearBtn);
 
-    private JPanel createUpdateCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(ORANGE, 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
+        JPanel formWrapper = new JPanel(new BorderLayout(0, 15));
+        formWrapper.setOpaque(false);
+        formWrapper.add(formGrid, BorderLayout.NORTH);
+        formWrapper.add(buttonPanel, BorderLayout.SOUTH);
 
-        JLabel titleLabel = new JLabel("Update Resource");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(ORANGE);
+        formCard.add(formWrapper, BorderLayout.CENTER);
+        contentPanel.add(formCard, BorderLayout.WEST);
 
-        JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 12));
-        formPanel.setBackground(CARD_BG);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
+        // Right Table Card
+        JPanel tableCard = UITheme.createCard("Cataloged Relief Resources", UITheme.PRIMARY_DARK);
 
-        updateIdField = new JTextField();
-        updateFieldChoice = new JComboBox<>(new String[]{"Resource Name", "Description"});
-        updateFieldChoice.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        updateFieldChoice.setBackground(Color.WHITE);
-        updateFieldChoice.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(8, 10, 8, 10)
-        ));
+        // Search Bar
+        JPanel searchBar = new JPanel(new BorderLayout(8, 0));
+        searchBar.setOpaque(false);
+        searchField = UITheme.createTextField();
+        JButton searchBtn = UITheme.createPrimaryButton("🔍 Search", UITheme.PRIMARY_DARK, UITheme.PRIMARY_NAVY);
+        JButton resetBtn = UITheme.createPrimaryButton("Show All", new Color(100, 116, 139), new Color(71, 85, 105));
 
-        updateValueField = new JTextField();
+        searchBtn.addActionListener(e -> searchRecords());
+        resetBtn.addActionListener(e -> { searchField.setText(""); loadData(); });
 
-        addFormField(formPanel, "Resource ID:", updateIdField);
+        JPanel searchBtnBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        searchBtnBox.setOpaque(false);
+        searchBtnBox.add(searchBtn);
+        searchBtnBox.add(resetBtn);
 
-        JLabel fieldLabel = new JLabel("Field to Update:");
-        fieldLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        fieldLabel.setForeground(new Color(55, 65, 81));
-        formPanel.add(fieldLabel);
-        formPanel.add(updateFieldChoice);
+        searchBar.add(new JLabel("Search Resources: "), BorderLayout.WEST);
+        searchBar.add(searchField, BorderLayout.CENTER);
+        searchBar.add(searchBtnBox, BorderLayout.EAST);
 
-        addFormField(formPanel, "New Value:", updateValueField);
+        // Table
+        String[] columns = {"ID", "Resource Name", "Description", "Unit"};
+        tableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+        table = new JTable(tableModel);
+        UITheme.styleTable(table);
 
-        // Wrap form in scroll pane
-        JScrollPane scrollPane = new JScrollPane(formPanel);
-        scrollPane.setBorder(null);
-        scrollPane.setBackground(CARD_BG);
-        scrollPane.getViewport().setBackground(CARD_BG);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-        JButton updateBtn = createStyledButton("🔄 Update Resource", ORANGE);
-        updateBtn.addActionListener(e -> updateResource());
-
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(scrollPane, BorderLayout.CENTER);
-        card.add(updateBtn, BorderLayout.SOUTH);
-
-        return card;
-    }
-
-    private JPanel createDeleteCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(RED, 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-
-        JLabel titleLabel = new JLabel("Delete Resource");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(RED);
-
-        JPanel formPanel = new JPanel(new GridLayout(1, 2, 10, 0));
-        formPanel.setBackground(CARD_BG);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 40, 0));
-
-        deleteIdField = new JTextField();
-        addFormField(formPanel, "Resource ID:", deleteIdField);
-
-        // Wrap form in scroll pane
-        JScrollPane scrollPane = new JScrollPane(formPanel);
-        scrollPane.setBorder(null);
-        scrollPane.setBackground(CARD_BG);
-        scrollPane.getViewport().setBackground(CARD_BG);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-        JButton deleteBtn = createStyledButton("🗑️ Delete Resource", RED);
-        deleteBtn.addActionListener(e -> deleteResource());
-        deleteBtn.setBorder(BorderFactory.createEmptyBorder(12, 0, 12, 0));
-
-        JPanel btnWrapper = new JPanel(new BorderLayout());
-        btnWrapper.setBackground(CARD_BG);
-        btnWrapper.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
-        btnWrapper.add(deleteBtn, BorderLayout.CENTER);
-
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(scrollPane, BorderLayout.CENTER);
-        card.add(btnWrapper, BorderLayout.SOUTH);
-
-        return card;
-    }
-
-    private JPanel createDisplayPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 15));
-        panel.setBackground(CARD_BG);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(CARD_BG);
-
-        JLabel titleLabel = new JLabel("Resource Records");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        titleLabel.setForeground(new Color(30, 58, 138));
-
-        JButton refreshBtn = createStyledButton("🔄 Refresh Records", BLUE_BTN);
-        refreshBtn.addActionListener(e -> displayResources());
-        refreshBtn.setPreferredSize(new Dimension(200, 40));
-
-        headerPanel.add(titleLabel, BorderLayout.WEST);
-        headerPanel.add(refreshBtn, BorderLayout.EAST);
-
-        outputArea = new JTextArea();
-        outputArea.setEditable(false);
-        outputArea.setFont(new Font("Consolas", Font.PLAIN, 13));
-        outputArea.setBackground(new Color(249, 250, 251));
-        outputArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        JScrollPane scrollPane = new JScrollPane(outputArea);
-        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
-
-        panel.add(headerPanel, BorderLayout.NORTH);
-        panel.add(scrollPane, BorderLayout.CENTER);
-
-        return panel;
-    }
-
-    private void addFormField(JPanel panel, String label, JTextField field) {
-        JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lbl.setForeground(new Color(55, 65, 81));
-
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        field.setForeground(Color.BLACK);
-        field.setBackground(Color.WHITE);
-        field.setCaretColor(Color.BLACK);
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(8, 10, 8, 10)
-        ));
-
-        panel.add(lbl);
-        panel.add(field);
-    }
-
-    private JButton createStyledButton(String text, Color bgColor) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setForeground(Color.WHITE);
-        btn.setBackground(bgColor);
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
-
-        btn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                btn.setBackground(bgColor.darker());
-            }
-            public void mouseExited(MouseEvent e) {
-                btn.setBackground(bgColor);
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = table.getSelectedRow();
+                if (row >= 0) {
+                    idField.setText(tableModel.getValueAt(row, 0).toString());
+                    nameField.setText(tableModel.getValueAt(row, 1).toString());
+                    Object descVal = tableModel.getValueAt(row, 2);
+                    descField.setText(descVal != null ? descVal.toString() : "");
+                    unitField.setText(tableModel.getValueAt(row, 3).toString());
+                }
             }
         });
 
-        return btn;
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_GRAY));
+
+        JPanel tableContainer = new JPanel(new BorderLayout(0, 10));
+        tableContainer.setOpaque(false);
+        tableContainer.add(searchBar, BorderLayout.NORTH);
+        tableContainer.add(scrollPane, BorderLayout.CENTER);
+
+        tableCard.add(tableContainer, BorderLayout.CENTER);
+        contentPanel.add(tableCard, BorderLayout.CENTER);
+
+        add(contentPanel, BorderLayout.CENTER);
+
+        loadData();
     }
 
-    private void insertResource() {
+    private void loadData() {
+        tableModel.setRowCount(0);
         try {
-            if (addIdField.getText().isEmpty() || addNameField.getText().isEmpty() ||
-                    addDescField.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(this, "⚠️ Please fill all fields!");
+            List<Resource> list = ResourceDAO.getAll();
+            for (Resource r : list) {
+                tableModel.addRow(new Object[]{
+                        r.getResourceId(),
+                        r.getResourceName(),
+                        r.getDescription() != null ? r.getDescription() : "-",
+                        r.getUnit()
+                });
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error loading resources: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void searchRecords() {
+        String kw = searchField.getText().trim();
+        if (kw.isEmpty()) { loadData(); return; }
+
+        tableModel.setRowCount(0);
+        try {
+            List<Resource> list = ResourceDAO.search(kw);
+            for (Resource r : list) {
+                tableModel.addRow(new Object[]{
+                        r.getResourceId(),
+                        r.getResourceName(),
+                        r.getDescription() != null ? r.getDescription() : "-",
+                        r.getUnit()
+                });
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error searching: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void addRecord() {
+        try {
+            String name = nameField.getText().trim();
+            String desc = descField.getText().trim();
+            String unit = unitField.getText().trim();
+
+            if (name.isEmpty() || unit.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please fill in Resource Name and Unit.", "Validation Error", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
-            PreparedStatement pst = con.prepareStatement("INSERT INTO Resource VALUES (?, ?, ?)");
-            pst.setInt(1, Integer.parseInt(addIdField.getText()));
-            pst.setString(2, addNameField.getText());
-            pst.setString(3, addDescField.getText());
-            pst.executeUpdate();
-            JOptionPane.showMessageDialog(this, "✅ Resource inserted successfully!");
-            clearAddFields();
-            displayResources();
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please enter a valid number for Resource ID!");
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error: " + ex.getMessage());
-        }
-    }
-
-    private void displayResources() {
-        try {
-            Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery("SELECT * FROM Resource");
-            outputArea.setText(String.format("%-15s %-30s %-40s\n",
-                    "Resource_ID", "Resource_Name", "Description"));
-            outputArea.append("─".repeat(90) + "\n");
-            while (rs.next()) {
-                outputArea.append(String.format("%-15d %-30s %-40s\n",
-                        rs.getInt(1), rs.getString(2), rs.getString(3)));
+            Resource r = new Resource(name, desc.isEmpty() ? null : desc, unit);
+            if (ResourceDAO.insert(r)) {
+                JOptionPane.showMessageDialog(this, "Resource item registered successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                clearForm();
+                loadData();
             }
-            rs.close();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error displaying resources!");
-            ex.printStackTrace();
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error adding resource: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void updateResource() {
-        String id = updateIdField.getText();
-        String newValue = updateValueField.getText();
-
-        if (id.isEmpty() || newValue.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please fill all fields!");
+    private void updateRecord() {
+        String idStr = idField.getText().trim();
+        if (idStr.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please select a resource from the table to update.", "Selection Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         try {
-            String selectedField = (String) updateFieldChoice.getSelectedItem();
-            String columnName = selectedField.equals("Resource Name") ? "Resource_Name" : "Description";
+            int id = Integer.parseInt(idStr);
+            String name = nameField.getText().trim();
+            String desc = descField.getText().trim();
+            String unit = unitField.getText().trim();
 
-            PreparedStatement pst = con.prepareStatement(
-                    "UPDATE Resource SET " + columnName + " = ? WHERE Resource_ID = ?");
-            pst.setString(1, newValue);
-            pst.setInt(2, Integer.parseInt(id));
-            int rows = pst.executeUpdate();
-
-            if (rows > 0) {
-                JOptionPane.showMessageDialog(this, "✅ " + selectedField + " updated successfully!");
-                clearUpdateFields();
-                displayResources();
-            } else {
-                JOptionPane.showMessageDialog(this, "❌ Resource not found!");
+            if (name.isEmpty() || unit.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please fill in Resource Name and Unit.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
             }
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please enter a valid number for Resource ID!");
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error updating resource: " + ex.getMessage());
+
+            Resource r = new Resource(id, name, desc.isEmpty() ? null : desc, unit);
+            if (ResourceDAO.update(r)) {
+                JOptionPane.showMessageDialog(this, "Resource record updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                clearForm();
+                loadData();
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error updating resource: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void deleteResource() {
-        String id = deleteIdField.getText();
-        if (id.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please enter Resource ID!");
+    private void deleteRecord() {
+        String idStr = idField.getText().trim();
+        if (idStr.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please select a resource from the table to delete.", "Selection Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Are you sure you want to delete Resource ID: " + id + "?",
-                "Confirm Delete", JOptionPane.YES_NO_OPTION);
+                "Are you sure you want to delete Resource ID " + idStr + "?\nAssociated shelter inventory records will also be removed.",
+                "Confirm Deletion", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
-        if (confirm != JOptionPane.YES_OPTION) return;
-
-        try {
-            PreparedStatement pst = con.prepareStatement("DELETE FROM Resource WHERE Resource_ID = ?");
-            pst.setInt(1, Integer.parseInt(id));
-            int rows = pst.executeUpdate();
-
-            if (rows > 0) {
-                JOptionPane.showMessageDialog(this, "🗑️ Deleted successfully!");
-                deleteIdField.setText("");
-                displayResources();
-            } else {
-                JOptionPane.showMessageDialog(this, "❌ Resource not found!");
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                int id = Integer.parseInt(idStr);
+                if (ResourceDAO.delete(id)) {
+                    JOptionPane.showMessageDialog(this, "Resource deleted successfully.", "Deleted", JOptionPane.INFORMATION_MESSAGE);
+                    clearForm();
+                    loadData();
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error deleting resource: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
             }
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please enter a valid number for Resource ID!");
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error deleting resource: " + ex.getMessage());
         }
     }
 
-    private void clearAddFields() {
-        addIdField.setText("");
-        addNameField.setText("");
-        addDescField.setText("");
-    }
-
-    private void clearUpdateFields() {
-        updateIdField.setText("");
-        updateValueField.setText("");
-        updateFieldChoice.setSelectedIndex(0);
+    private void clearForm() {
+        idField.setText("");
+        nameField.setText("");
+        descField.setText("");
+        unitField.setText("");
+        table.clearSelection();
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            ResourceUI ui = new ResourceUI();
-            ui.setVisible(true);
-        });
+        SwingUtilities.invokeLater(() -> new ResourceUI().setVisible(true));
     }
 }

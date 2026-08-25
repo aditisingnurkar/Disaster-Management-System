@@ -1,493 +1,303 @@
 import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.*;
-import java.sql.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
+import java.util.List;
 
 public class ShelterInventoryUI extends JFrame {
-    private JTextField addShelterIdField, addResourceIdField, addQuantityField;
-    private JTextField updateShelterIdField, updateResourceIdField, updateOldResourceIdField, updateNewResourceIdField;
-    private JTextField updateOldShelterIdField, updateNewShelterIdField, updateQuantityField;
-    private JTextField deleteShelterIdField, deleteResourceIdField;
-    private JTextArea outputArea;
-    private Connection con;
 
-    // Modern color scheme
-    private final Color PRIMARY_BLUE = new Color(30, 58, 138);
-    private final Color LIGHT_BG = new Color(249, 250, 251);
-    private final Color CARD_BG = Color.WHITE;
-    private final Color ORANGE = new Color(249, 115, 22);
-    private final Color RED = new Color(239, 68, 68);
-    private final Color BLUE_BTN = new Color(37, 99, 235);
-    private final Color BORDER_COLOR = new Color(229, 231, 235);
+    private JComboBox<ComboItem> shelterCombo;
+    private JComboBox<ComboItem> resourceCombo;
+    private JTextField quantityField, searchField;
+    private JTable table;
+    private DefaultTableModel tableModel;
+
+    // Track active selection
+    private Integer selectedShelterId = null;
+    private Integer selectedResourceId = null;
 
     public ShelterInventoryUI() {
-        setTitle("Shelter Inventory Management System");
-        setSize(1400, 800);
-        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setTitle("Shelter Inventory - Resource Logistics & Stock Allocation");
+        setSize(1200, 700);
         setLocationRelativeTo(null);
-
-        try {
-            con = DatabaseConnection.getConnection();
-        } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Database connection failed!");
-            e.printStackTrace();
-            return;
-        }
-
-        // Main container with light background
-        JPanel mainPanel = new JPanel(new BorderLayout());
-        mainPanel.setBackground(LIGHT_BG);
+        setDefaultCloseOperation(DISPOSE_ON_CLOSE);
+        setLayout(new BorderLayout());
 
         // Header
-        JPanel header = createHeader();
-        mainPanel.add(header, BorderLayout.NORTH);
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setBackground(UITheme.PRIMARY_DARK);
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(15, 25, 15, 25));
 
-        // Content area
-        JPanel contentPanel = new JPanel(new BorderLayout(15, 15));
-        contentPanel.setBackground(LIGHT_BG);
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-
-        // Top section with three cards
-        JPanel cardsPanel = new JPanel(new GridLayout(1, 3, 20, 0));
-        cardsPanel.setBackground(LIGHT_BG);
-        cardsPanel.setPreferredSize(new Dimension(1400, 380));
-
-        cardsPanel.add(createAddCard());
-        cardsPanel.add(createUpdateCard());
-        cardsPanel.add(createDeleteCard());
-
-        contentPanel.add(cardsPanel, BorderLayout.NORTH);
-
-        // Bottom section - Display area
-        JPanel displayPanel = createDisplayPanel();
-        contentPanel.add(displayPanel, BorderLayout.CENTER);
-
-        mainPanel.add(contentPanel, BorderLayout.CENTER);
-        add(mainPanel);
-    }
-
-    private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(PRIMARY_BLUE);
-        header.setBorder(BorderFactory.createEmptyBorder(30, 40, 30, 40));
-
-        JPanel textPanel = new JPanel(new GridLayout(2, 1, 0, 5));
-        textPanel.setBackground(PRIMARY_BLUE);
-
-        JLabel titleLabel = new JLabel("📦 Shelter Inventory Management System");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        JLabel titleLabel = new JLabel("📊 Shelter Inventory Management (M:N Shelter ── Resource)");
+        titleLabel.setFont(UITheme.FONT_TITLE);
         titleLabel.setForeground(Color.WHITE);
 
-        JLabel subtitleLabel = new JLabel("Manage and track shelter inventory resources efficiently");
-        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        subtitleLabel.setForeground(new Color(191, 219, 254));
+        JLabel subtitleLabel = new JLabel("Allocate and track relief supplies and inventory stock levels across emergency shelters");
+        subtitleLabel.setFont(UITheme.FONT_BODY);
+        subtitleLabel.setForeground(new Color(203, 213, 225));
 
-        textPanel.add(titleLabel);
-        textPanel.add(subtitleLabel);
-        header.add(textPanel, BorderLayout.WEST);
+        JPanel titleBox = new JPanel(new GridLayout(2, 1, 0, 4));
+        titleBox.setOpaque(false);
+        titleBox.add(titleLabel);
+        titleBox.add(subtitleLabel);
+        headerPanel.add(titleBox, BorderLayout.WEST);
+        add(headerPanel, BorderLayout.NORTH);
 
-        return header;
-    }
+        // Center Content
+        JPanel contentPanel = new JPanel(new BorderLayout(15, 15));
+        contentPanel.setBackground(UITheme.BG_LIGHT);
+        contentPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
 
-    private JPanel createAddCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(59, 130, 246), 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
+        // Left Form Card
+        JPanel formCard = UITheme.createCard("Stock Allocation Entry", UITheme.PRIMARY_DARK);
+        formCard.setPreferredSize(new Dimension(400, 0));
 
-        JLabel titleLabel = new JLabel("Add New Inventory");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(new Color(59, 130, 246));
+        JPanel formGrid = new JPanel(new GridLayout(3, 2, 8, 14));
+        formGrid.setOpaque(false);
 
-        JPanel formPanel = new JPanel(new GridLayout(3, 2, 10, 12));
-        formPanel.setBackground(CARD_BG);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 15, 0));
+        shelterCombo = UITheme.createComboBox();
+        resourceCombo = UITheme.createComboBox();
+        quantityField = UITheme.createTextField();
 
-        addShelterIdField = new JTextField();
-        addResourceIdField = new JTextField();
-        addQuantityField = new JTextField();
+        formGrid.add(new JLabel("Target Shelter [FK]:"));
+        formGrid.add(shelterCombo);
+        formGrid.add(new JLabel("Relief Resource [FK]:"));
+        formGrid.add(resourceCombo);
+        formGrid.add(new JLabel("Allocated Quantity:"));
+        formGrid.add(quantityField);
 
-        addFormField(formPanel, "Shelter ID:", addShelterIdField);
-        addFormField(formPanel, "Resource ID:", addResourceIdField);
-        addFormField(formPanel, "Quantity:", addQuantityField);
+        JPanel buttonPanel = new JPanel(new GridLayout(2, 2, 8, 8));
+        buttonPanel.setOpaque(false);
 
-        // Wrap form panel in scroll pane
-        JScrollPane scrollPane = new JScrollPane(formPanel);
-        scrollPane.setBorder(null);
-        scrollPane.setBackground(CARD_BG);
-        scrollPane.getViewport().setBackground(CARD_BG);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        JButton saveBtn = UITheme.createPrimaryButton("💾 Save / Update Stock", UITheme.ACCENT_BLUE, UITheme.ACCENT_HOVER);
+        JButton deleteBtn = UITheme.createPrimaryButton("🗑 Remove Item", UITheme.DANGER_RED, UITheme.DANGER_HOVER);
+        JButton clearBtn = UITheme.createPrimaryButton("🔄 Clear Form", new Color(100, 116, 139), new Color(71, 85, 105));
+        JButton refreshBtn = UITheme.createPrimaryButton("⟳ Reload", UITheme.PRIMARY_DARK, UITheme.PRIMARY_NAVY);
 
-        JButton addBtn = createStyledButton("➕ Add Inventory", BLUE_BTN);
-        addBtn.addActionListener(e -> insertInventory());
+        saveBtn.addActionListener(e -> saveStock());
+        deleteBtn.addActionListener(e -> deleteStock());
+        clearBtn.addActionListener(e -> clearForm());
+        refreshBtn.addActionListener(e -> { loadCombos(); loadData(); });
 
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(scrollPane, BorderLayout.CENTER);
-        card.add(addBtn, BorderLayout.SOUTH);
+        buttonPanel.add(saveBtn);
+        buttonPanel.add(deleteBtn);
+        buttonPanel.add(clearBtn);
+        buttonPanel.add(refreshBtn);
 
-        return card;
-    }
+        JPanel formWrapper = new JPanel(new BorderLayout(0, 15));
+        formWrapper.setOpaque(false);
+        formWrapper.add(formGrid, BorderLayout.NORTH);
+        formWrapper.add(buttonPanel, BorderLayout.SOUTH);
 
-    private JPanel createUpdateCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(ORANGE, 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
+        formCard.add(formWrapper, BorderLayout.CENTER);
+        contentPanel.add(formCard, BorderLayout.WEST);
 
-        JLabel titleLabel = new JLabel("Update Inventory");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(ORANGE);
+        // Right Table Card
+        JPanel tableCard = UITheme.createCard("Shelter Inventory Stock Levels", UITheme.PRIMARY_DARK);
 
-        JPanel formPanel = new JPanel(new GridLayout(7, 2, 10, 10));
-        formPanel.setBackground(CARD_BG);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        // Search Bar
+        JPanel searchBar = new JPanel(new BorderLayout(8, 0));
+        searchBar.setOpaque(false);
+        searchField = UITheme.createTextField();
+        JButton searchBtn = UITheme.createPrimaryButton("🔍 Search", UITheme.PRIMARY_DARK, UITheme.PRIMARY_NAVY);
+        JButton resetBtn = UITheme.createPrimaryButton("Show All", new Color(100, 116, 139), new Color(71, 85, 105));
 
-        updateShelterIdField = new JTextField();
-        updateResourceIdField = new JTextField();
-        updateQuantityField = new JTextField();
-        updateOldResourceIdField = new JTextField();
-        updateNewResourceIdField = new JTextField();
-        updateOldShelterIdField = new JTextField();
-        updateNewShelterIdField = new JTextField();
+        searchBtn.addActionListener(e -> searchRecords());
+        resetBtn.addActionListener(e -> { searchField.setText(""); loadData(); });
 
-        // For Quantity Update
-        addFormField(formPanel, "Shelter ID:", updateShelterIdField);
-        addFormField(formPanel, "Resource ID:", updateResourceIdField);
-        addFormField(formPanel, "New Quantity:", updateQuantityField);
+        JPanel searchBtnBox = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        searchBtnBox.setOpaque(false);
+        searchBtnBox.add(searchBtn);
+        searchBtnBox.add(resetBtn);
 
-        // Separator label
-        JLabel separator1 = new JLabel("─────────────────");
-        separator1.setForeground(BORDER_COLOR);
-        separator1.setHorizontalAlignment(JLabel.CENTER);
-        formPanel.add(separator1);
-        formPanel.add(new JLabel());
+        searchBar.add(new JLabel("Search Inventory: "), BorderLayout.WEST);
+        searchBar.add(searchField, BorderLayout.CENTER);
+        searchBar.add(searchBtnBox, BorderLayout.EAST);
 
-        // For Resource ID Update
-        addFormField(formPanel, "Old Resource ID:", updateOldResourceIdField);
-        addFormField(formPanel, "New Resource ID:", updateNewResourceIdField);
+        // Table
+        String[] columns = {"Shelter ID", "Shelter Name", "Resource ID", "Resource Item", "Quantity", "Unit"};
+        tableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) { return false; }
+        };
+        table = new JTable(tableModel);
+        UITheme.styleTable(table);
 
-        // For Shelter ID Update
-        addFormField(formPanel, "Old Shelter ID:", updateOldShelterIdField);
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = table.getSelectedRow();
+                if (row >= 0) {
+                    int sId = Integer.parseInt(tableModel.getValueAt(row, 0).toString());
+                    int rId = Integer.parseInt(tableModel.getValueAt(row, 2).toString());
+                    String qty = tableModel.getValueAt(row, 4).toString();
 
-        // Wrap form in scroll pane
-        JScrollPane scrollPane = new JScrollPane(formPanel);
-        scrollPane.setBorder(null);
-        scrollPane.setBackground(CARD_BG);
-        scrollPane.getViewport().setBackground(CARD_BG);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+                    selectedShelterId = sId;
+                    selectedResourceId = rId;
 
-        JPanel buttonPanel = new JPanel(new GridLayout(3, 1, 0, 8));
-        buttonPanel.setBackground(CARD_BG);
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
-
-        JButton updateQuantityBtn = createStyledButton("🔄 Update Quantity", ORANGE);
-        JButton updateResourceIdBtn = createStyledButton("🔄 Update Resource ID", ORANGE);
-        JButton updateShelterIdBtn = createStyledButton("🔄 Update Shelter ID", ORANGE);
-
-        updateQuantityBtn.addActionListener(e -> updateQuantity());
-        updateResourceIdBtn.addActionListener(e -> updateResourceID());
-        updateShelterIdBtn.addActionListener(e -> updateShelterID());
-
-        buttonPanel.add(updateQuantityBtn);
-        buttonPanel.add(updateResourceIdBtn);
-        buttonPanel.add(updateShelterIdBtn);
-
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(scrollPane, BorderLayout.CENTER);
-        card.add(buttonPanel, BorderLayout.SOUTH);
-
-        return card;
-    }
-
-    private JPanel createDeleteCard() {
-        JPanel card = new JPanel(new BorderLayout());
-        card.setBackground(CARD_BG);
-        card.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(RED, 2),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-
-        JLabel titleLabel = new JLabel("Delete Inventory");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        titleLabel.setForeground(RED);
-
-        JPanel formPanel = new JPanel(new GridLayout(2, 2, 10, 12));
-        formPanel.setBackground(CARD_BG);
-        formPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 40, 0));
-
-        deleteShelterIdField = new JTextField();
-        deleteResourceIdField = new JTextField();
-
-        addFormField(formPanel, "Shelter ID:", deleteShelterIdField);
-        addFormField(formPanel, "Resource ID:", deleteResourceIdField);
-
-        // Wrap form in scroll pane
-        JScrollPane scrollPane = new JScrollPane(formPanel);
-        scrollPane.setBorder(null);
-        scrollPane.setBackground(CARD_BG);
-        scrollPane.getViewport().setBackground(CARD_BG);
-        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
-        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-
-        JButton deleteBtn = createStyledButton("🗑️ Delete Inventory", RED);
-        deleteBtn.addActionListener(e -> deleteInventory());
-        deleteBtn.setBorder(BorderFactory.createEmptyBorder(12, 0, 12, 0));
-
-        JPanel btnWrapper = new JPanel(new BorderLayout());
-        btnWrapper.setBackground(CARD_BG);
-        btnWrapper.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
-        btnWrapper.add(deleteBtn, BorderLayout.CENTER);
-
-        card.add(titleLabel, BorderLayout.NORTH);
-        card.add(scrollPane, BorderLayout.CENTER);
-        card.add(btnWrapper, BorderLayout.SOUTH);
-
-        return card;
-    }
-
-    private JPanel createDisplayPanel() {
-        JPanel panel = new JPanel(new BorderLayout(0, 15));
-        panel.setBackground(CARD_BG);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(20, 20, 20, 20)
-        ));
-
-        JPanel headerPanel = new JPanel(new BorderLayout());
-        headerPanel.setBackground(CARD_BG);
-
-        JLabel titleLabel = new JLabel("Shelter Inventory Records");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        titleLabel.setForeground(new Color(30, 58, 138));
-
-        JButton refreshBtn = createStyledButton("🔄 Refresh Records", BLUE_BTN);
-        refreshBtn.addActionListener(e -> displayInventory());
-        refreshBtn.setPreferredSize(new Dimension(200, 40));
-
-        headerPanel.add(titleLabel, BorderLayout.WEST);
-        headerPanel.add(refreshBtn, BorderLayout.EAST);
-
-        outputArea = new JTextArea();
-        outputArea.setEditable(false);
-        outputArea.setFont(new Font("Consolas", Font.PLAIN, 13));
-        outputArea.setBackground(new Color(249, 250, 251));
-        outputArea.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        JScrollPane scrollPane = new JScrollPane(outputArea);
-        scrollPane.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
-
-        panel.add(headerPanel, BorderLayout.NORTH);
-        panel.add(scrollPane, BorderLayout.CENTER);
-
-        return panel;
-    }
-
-    private void addFormField(JPanel panel, String label, JTextField field) {
-        JLabel lbl = new JLabel(label);
-        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lbl.setForeground(new Color(55, 65, 81));
-
-        field.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        field.setForeground(Color.BLACK);
-        field.setBackground(Color.WHITE);
-        field.setCaretColor(Color.BLACK);
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER_COLOR, 1),
-                BorderFactory.createEmptyBorder(8, 10, 8, 10)
-        ));
-
-        panel.add(lbl);
-        panel.add(field);
-    }
-
-    private JButton createStyledButton(String text, Color bgColor) {
-        JButton btn = new JButton(text);
-        btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btn.setForeground(Color.WHITE);
-        btn.setBackground(bgColor);
-        btn.setFocusPainted(false);
-        btn.setBorderPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(BorderFactory.createEmptyBorder(12, 20, 12, 20));
-
-        btn.addMouseListener(new MouseAdapter() {
-            public void mouseEntered(MouseEvent e) {
-                btn.setBackground(bgColor.darker());
-            }
-            public void mouseExited(MouseEvent e) {
-                btn.setBackground(bgColor);
+                    selectShelterInCombo(sId);
+                    selectResourceInCombo(rId);
+                    quantityField.setText(qty);
+                }
             }
         });
 
-        return btn;
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createLineBorder(UITheme.BORDER_GRAY));
+
+        JPanel tableContainer = new JPanel(new BorderLayout(0, 10));
+        tableContainer.setOpaque(false);
+        tableContainer.add(searchBar, BorderLayout.NORTH);
+        tableContainer.add(scrollPane, BorderLayout.CENTER);
+
+        tableCard.add(tableContainer, BorderLayout.CENTER);
+        contentPanel.add(tableCard, BorderLayout.CENTER);
+
+        add(contentPanel, BorderLayout.CENTER);
+
+        loadCombos();
+        loadData();
     }
 
-    private void insertInventory() {
+    private void loadCombos() {
+        shelterCombo.removeAllItems();
+        resourceCombo.removeAllItems();
+
         try {
-            PreparedStatement pst = con.prepareStatement("INSERT INTO Shelter_Inventory VALUES (?, ?, ?)");
-            pst.setInt(1, Integer.parseInt(addShelterIdField.getText()));
-            pst.setInt(2, Integer.parseInt(addResourceIdField.getText()));
-            pst.setInt(3, Integer.parseInt(addQuantityField.getText()));
-            pst.executeUpdate();
-            JOptionPane.showMessageDialog(this, "✅ Inventory inserted successfully!");
-            clearAddFields();
-            displayInventory();
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error: " + ex.getMessage());
+            List<ComboItem> shelters = ShelterDAO.getComboItems();
+            for (ComboItem item : shelters) shelterCombo.addItem(item);
+
+            List<ComboItem> resources = ResourceDAO.getComboItems();
+            for (ComboItem item : resources) resourceCombo.addItem(item);
+        } catch (Exception e) {
+            System.err.println("Error loading inventory combos: " + e.getMessage());
         }
     }
 
-    private void displayInventory() {
-        try {
-            Statement st = con.createStatement();
-            ResultSet rs = st.executeQuery("SELECT * FROM Shelter_Inventory");
-            outputArea.setText(String.format("%-15s %-15s %-15s\n",
-                    "Shelter_ID", "Resource_ID", "Quantity"));
-            outputArea.append("─".repeat(50) + "\n");
-            while (rs.next()) {
-                outputArea.append(String.format("%-15d %-15d %-15d\n",
-                        rs.getInt(1), rs.getInt(2), rs.getInt(3)));
+    private void selectShelterInCombo(int shelterId) {
+        for (int i = 0; i < shelterCombo.getItemCount(); i++) {
+            ComboItem item = shelterCombo.getItemAt(i);
+            if (item != null && item.getId() == shelterId) {
+                shelterCombo.setSelectedIndex(i);
+                break;
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error displaying inventory!");
         }
     }
 
-    private void updateQuantity() {
-        String shelterId = updateShelterIdField.getText();
-        String resourceId = updateResourceIdField.getText();
-        String quantity = updateQuantityField.getText();
+    private void selectResourceInCombo(int resourceId) {
+        for (int i = 0; i < resourceCombo.getItemCount(); i++) {
+            ComboItem item = resourceCombo.getItemAt(i);
+            if (item != null && item.getId() == resourceId) {
+                resourceCombo.setSelectedIndex(i);
+                break;
+            }
+        }
+    }
 
-        if (shelterId.isEmpty() || resourceId.isEmpty() || quantity.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please fill Shelter ID, Resource ID, and New Quantity!");
+    private void loadData() {
+        tableModel.setRowCount(0);
+        try {
+            List<ShelterInventory> list = ShelterInventoryDAO.getAll();
+            for (ShelterInventory si : list) {
+                tableModel.addRow(new Object[]{
+                        si.getShelterId(),
+                        si.getShelterName(),
+                        si.getResourceId(),
+                        si.getResourceName(),
+                        si.getQuantity(),
+                        si.getUnit()
+                });
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error loading inventory: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void searchRecords() {
+        String kw = searchField.getText().trim();
+        if (kw.isEmpty()) { loadData(); return; }
+
+        tableModel.setRowCount(0);
+        try {
+            List<ShelterInventory> list = ShelterInventoryDAO.search(kw);
+            for (ShelterInventory si : list) {
+                tableModel.addRow(new Object[]{
+                        si.getShelterId(),
+                        si.getShelterName(),
+                        si.getResourceId(),
+                        si.getResourceName(),
+                        si.getQuantity(),
+                        si.getUnit()
+                });
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error searching inventory: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    private void saveStock() {
+        ComboItem selectedShelter = (ComboItem) shelterCombo.getSelectedItem();
+        ComboItem selectedResource = (ComboItem) resourceCombo.getSelectedItem();
+        String qtyStr = quantityField.getText().trim();
+
+        if (selectedShelter == null || selectedResource == null || qtyStr.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Please select a Shelter, a Resource, and enter Quantity.", "Validation Error", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         try {
-            PreparedStatement pst = con.prepareStatement(
-                    "UPDATE Shelter_Inventory SET Quantity = ? WHERE Shelter_ID = ? AND Resource_ID = ?");
-            pst.setInt(1, Integer.parseInt(quantity));
-            pst.setInt(2, Integer.parseInt(shelterId));
-            pst.setInt(3, Integer.parseInt(resourceId));
-            int rows = pst.executeUpdate();
-            JOptionPane.showMessageDialog(this, rows > 0 ? "✅ Quantity updated!" : "❌ Inventory record not found!");
-            if (rows > 0) {
-                clearUpdateFields();
-                displayInventory();
+            int quantity = Integer.parseInt(qtyStr);
+            if (quantity < 0) {
+                JOptionPane.showMessageDialog(this, "Quantity cannot be negative.", "Validation Error", JOptionPane.WARNING_MESSAGE);
+                return;
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error updating quantity: " + ex.getMessage());
+
+            if (ShelterInventoryDAO.saveOrUpdate(selectedShelter.getId(), selectedResource.getId(), quantity)) {
+                JOptionPane.showMessageDialog(this, "Inventory stock saved successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+                clearForm();
+                loadData();
+            }
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Quantity must be a valid non-negative integer.", "Invalid Number", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this, "Error saving inventory: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void updateResourceID() {
-        String shelterId = updateShelterIdField.getText();
-        String oldResourceId = updateOldResourceIdField.getText();
-        String newResourceId = updateNewResourceIdField.getText();
-
-        if (shelterId.isEmpty() || oldResourceId.isEmpty() || newResourceId.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please fill Shelter ID, Old Resource ID, and New Resource ID!");
-            return;
-        }
-
-        try {
-            PreparedStatement pst = con.prepareStatement(
-                    "UPDATE Shelter_Inventory SET Resource_ID = ? WHERE Shelter_ID = ? AND Resource_ID = ?");
-            pst.setInt(1, Integer.parseInt(newResourceId));
-            pst.setInt(2, Integer.parseInt(shelterId));
-            pst.setInt(3, Integer.parseInt(oldResourceId));
-            int rows = pst.executeUpdate();
-            JOptionPane.showMessageDialog(this, rows > 0 ? "✅ Resource ID updated!" : "❌ Inventory record not found!");
-            if (rows > 0) {
-                clearUpdateFields();
-                displayInventory();
-            }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error updating Resource ID: " + ex.getMessage());
-        }
-    }
-
-    private void updateShelterID() {
-        String resourceId = updateResourceIdField.getText();
-        String oldShelterId = updateOldShelterIdField.getText();
-        String newShelterId = updateNewShelterIdField.getText();
-
-        if (resourceId.isEmpty() || oldShelterId.isEmpty() || newShelterId.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please fill Resource ID, Old Shelter ID, and New Shelter ID (from bottom field)!");
-            return;
-        }
-
-        try {
-            PreparedStatement pst = con.prepareStatement(
-                    "UPDATE Shelter_Inventory SET Shelter_ID = ? WHERE Shelter_ID = ? AND Resource_ID = ?");
-            pst.setInt(1, Integer.parseInt(newShelterId));
-            pst.setInt(2, Integer.parseInt(oldShelterId));
-            pst.setInt(3, Integer.parseInt(resourceId));
-            int rows = pst.executeUpdate();
-            JOptionPane.showMessageDialog(this, rows > 0 ? "✅ Shelter ID updated!" : "❌ Inventory record not found!");
-            if (rows > 0) {
-                clearUpdateFields();
-                displayInventory();
-            }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error updating Shelter ID: " + ex.getMessage());
-        }
-    }
-
-    private void deleteInventory() {
-        String shelterId = deleteShelterIdField.getText();
-        String resourceId = deleteResourceIdField.getText();
-
-        if (shelterId.isEmpty() || resourceId.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "⚠️ Please enter both Shelter ID and Resource ID!");
+    private void deleteStock() {
+        if (selectedShelterId == null || selectedResourceId == null) {
+            JOptionPane.showMessageDialog(this, "Please select an inventory record from the table to delete.", "Selection Required", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         int confirm = JOptionPane.showConfirmDialog(this,
-                "Are you sure you want to delete this inventory?\nShelter ID: " + shelterId + ", Resource ID: " + resourceId,
-                "Confirm Delete", JOptionPane.YES_NO_OPTION);
+                "Are you sure you want to remove this resource stock allocation from Shelter ID " + selectedShelterId + "?",
+                "Confirm Deletion", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
-        if (confirm != JOptionPane.YES_OPTION) return;
-
-        try {
-            PreparedStatement pst = con.prepareStatement("DELETE FROM Shelter_Inventory WHERE Shelter_ID = ? AND Resource_ID = ?");
-            pst.setInt(1, Integer.parseInt(shelterId));
-            pst.setInt(2, Integer.parseInt(resourceId));
-            int rows = pst.executeUpdate();
-            JOptionPane.showMessageDialog(this, rows > 0 ? "🗑️ Deleted successfully!" : "❌ Inventory record not found!");
-            if (rows > 0) {
-                clearDeleteFields();
-                displayInventory();
+        if (confirm == JOptionPane.YES_OPTION) {
+            try {
+                if (ShelterInventoryDAO.delete(selectedShelterId, selectedResourceId)) {
+                    JOptionPane.showMessageDialog(this, "Inventory record removed successfully.", "Deleted", JOptionPane.INFORMATION_MESSAGE);
+                    clearForm();
+                    loadData();
+                }
+            } catch (Exception e) {
+                JOptionPane.showMessageDialog(this, "Error deleting inventory: " + e.getMessage(), "Database Error", JOptionPane.ERROR_MESSAGE);
             }
-        } catch (Exception ex) {
-            JOptionPane.showMessageDialog(this, "⚠️ Error deleting inventory: " + ex.getMessage());
         }
     }
 
-    private void clearAddFields() {
-        addShelterIdField.setText("");
-        addResourceIdField.setText("");
-        addQuantityField.setText("");
+    private void clearForm() {
+        quantityField.setText("");
+        selectedShelterId = null;
+        selectedResourceId = null;
+        if (shelterCombo.getItemCount() > 0) shelterCombo.setSelectedIndex(0);
+        if (resourceCombo.getItemCount() > 0) resourceCombo.setSelectedIndex(0);
+        table.clearSelection();
     }
 
-    private void clearUpdateFields() {
-        updateShelterIdField.setText("");
-        updateResourceIdField.setText("");
-        updateQuantityField.setText("");
-        updateOldResourceIdField.setText("");
-        updateNewResourceIdField.setText("");
-        updateOldShelterIdField.setText("");
-        updateNewShelterIdField.setText("");
-    }
-
-    private void clearDeleteFields() {
-        deleteShelterIdField.setText("");
-        deleteResourceIdField.setText("");
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new ShelterInventoryUI().setVisible(true));
     }
 }
