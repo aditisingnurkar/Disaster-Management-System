@@ -45,9 +45,8 @@ public class SplashScreen extends JWindow {
 
     private JLabel loadImage(int width, int height) {
         String[] paths = {
-                "dashboard.png",
-                "src/dashboard.png",
-                "./dashboard.png"
+            "assets/dashboard.png",
+            "dashboard.png"
         };
 
         for (String path : paths) {

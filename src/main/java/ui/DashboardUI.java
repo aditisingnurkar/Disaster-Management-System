@@ -430,8 +430,8 @@ public class DashboardUI extends JFrame {
         JLabel qrLabel = new JLabel();
         qrLabel.setHorizontalAlignment(SwingConstants.CENTER);
 
-        File qrFile = new File("qr_code.png");
-        if (!qrFile.exists()) qrFile = new File("src/qr_code.png");
+        File qrFile = new File("assets/qr_code.png");
+        if (!qrFile.exists()) qrFile = new File("qr_code.png");
 
         if (qrFile.exists()) {
             ImageIcon icon = new ImageIcon(qrFile.getAbsolutePath());

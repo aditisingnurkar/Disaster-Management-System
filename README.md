@@ -2,9 +2,21 @@
 
 A complete, normalized **3NF Relational Database Management System** for disaster coordination, emergency shelters, supply logistics, victim registration, volunteer mobilization, and field incident logging.
 
+## 1. Project Structure
+
+```text
+src/main/java/     Java application source
+database/          MySQL schema, seed data, and queries
+assets/            Runtime images
+lib/               MySQL JDBC driver
+scripts/           Windows launch scripts
+docs/              ERD, normalization material, and project PDF
+target/classes/    Compiled output (generated)
+```
+
 ---
 
-## 1. Database Architecture (8 Core 3NF Tables)
+## 2. Database Architecture (8 Core 3NF Tables)
 
 ```
                        ┌──────────────┐
@@ -63,7 +75,7 @@ A complete, normalized **3NF Relational Database Management System** for disaste
 
 ---
 
-## 2. Quick Setup Guide
+## 3. Quick Setup Guide
 
 ### Step 1: Import Database in MySQL
 Open MySQL Workbench, MySQL CLI, or phpMyAdmin and execute:
@@ -78,8 +90,8 @@ mysql -u root -p disaster_management < database/seed.sql
 ```
 
 ### Step 2: Configure Database Credentials
-You can configure your password directly in:
-1. `db.properties` file:
+You can configure credentials using either:
+1. `db.properties` file in the repository root:
    ```properties
    db.host=localhost
    db.port=3306
@@ -87,22 +99,26 @@ You can configure your password directly in:
    db.user=root
    db.password=YOUR_MYSQL_PASSWORD
    ```
-2. Or open the GUI and click **"⚙ DB Settings"** in the top right corner of the dashboard!
+2. Environment variables (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`).
+3. Open the GUI and click **"⚙ DB Settings"** in the top right corner of the dashboard.
 
 ### Step 3: Run the Application
-- **GUI Mode**: Double-click `run_gui.bat` or run:
+- **GUI Mode**: Double-click `scripts/run_gui.bat`.
+- **CLI Mode**: Double-click `scripts/run_cli.bat` or run from the repository root:
   ```bash
-  javac -cp ".;lib/mysql-connector-j.jar" -d bin *.java
-  java -cp "bin;lib/mysql-connector-j.jar" DisasterManagement
+   java -cp "target/classes;lib/mysql-connector-j-9.4.0.jar" ManagementSystem
   ```
-- **CLI Mode**: Double-click `run_cli.bat` or run:
-  ```bash
-  java -cp "bin;lib/mysql-connector-j.jar" ManagementSystem
-  ```
+
+Verify the connection and schema before launching:
+```powershell
+$sources = Get-ChildItem src/main/java -Recurse -Filter *.java
+javac -cp ".;lib/mysql-connector-j-9.4.0.jar" -d target/classes $sources.FullName
+java -cp "target/classes;lib/mysql-connector-j-9.4.0.jar" TestConnection
+```
 
 ---
 
-## 3. Key DBMS Features for Viva Presentation
+## 4. Key DBMS Features for Viva Presentation
 
 - **Live SQL Dashboard Metrics:** Total Disasters, Victims, Shelters, Volunteers, Inventory Stock, and Open Incidents are computed directly using `COUNT()`, `SUM()`, and `GROUP BY` queries in MySQL.
 - **Interactive DBMS Query Runner (`DBMSQueryRunnerUI`):** Demonstrates 10+ preset SQL queries (Multi-table 3NF JOINs, Subqueries, Group By with Having, Aggregations) during your project presentation.
@@ -112,4 +128,4 @@ You can configure your password directly in:
   - `database/schema.sql` (Full DDL with constraints and indexes)
   - `database/seed.sql` (Realistic sample data)
   - `database/queries.sql` (25+ demonstration queries)
-  - `database/normalization_and_viva_guide.md` (Detailed 1NF → 2NF → 3NF breakdown and Viva Q&A)
+   - `database/normalization_and_viva_guide.md` (Detailed 1NF → 2NF → 3NF breakdown and Viva Q&A)

@@ -8,7 +8,7 @@ public class DatabaseConnection {
     private static int port = 3306;
     private static String dbName = "disaster_management";
     private static String user = "root";
-    private static String password = "YOUR_PASSWORD"; // Default placeholder; configurable
+    private static String password = "Visharad16";
 
     private static final String CONFIG_FILE = "db.properties";
 
@@ -17,7 +17,7 @@ public class DatabaseConnection {
     }
 
     public static synchronized void loadConfig() {
-        File file = new File(CONFIG_FILE);
+        File file = findConfigFile();
         if (file.exists()) {
             try (InputStream in = new FileInputStream(file)) {
                 Properties props = new Properties();
@@ -30,6 +30,32 @@ public class DatabaseConnection {
             } catch (Exception e) {
                 System.err.println("Warning: Could not load " + CONFIG_FILE + ", using default settings: " + e.getMessage());
             }
+        }
+
+        host = System.getenv().getOrDefault("DB_HOST", host);
+        port = parsePort(System.getenv("DB_PORT"), port);
+        dbName = System.getenv().getOrDefault("DB_NAME", dbName);
+        user = System.getenv().getOrDefault("DB_USER", user);
+        password = System.getenv().getOrDefault("DB_PASSWORD", password);
+    }
+
+    private static File findConfigFile() {
+        File currentDirectory = new File(CONFIG_FILE);
+        if (currentDirectory.exists()) {
+            return currentDirectory;
+        }
+        return new File("..", CONFIG_FILE);
+    }
+
+    private static int parsePort(String value, int defaultPort) {
+        if (value == null || value.trim().isEmpty()) {
+            return defaultPort;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            System.err.println("Warning: Invalid DB_PORT; using " + defaultPort + ".");
+            return defaultPort;
         }
     }
 
@@ -74,6 +100,9 @@ public class DatabaseConnection {
         } catch (ClassNotFoundException e) {
             throw new SQLException("MySQL JDBC Driver (com.mysql.cj.jdbc.Driver) not found in classpath!", e);
         }
+        if (password.isEmpty()) {
+            throw new SQLException("Database password is not configured. Set DB_PASSWORD or configure db.properties.");
+        }
         return DriverManager.getConnection(getUrl(), user, password);
     }
 
@@ -82,6 +111,9 @@ public class DatabaseConnection {
             Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
             throw new SQLException("MySQL JDBC Driver not found in classpath!", e);
+        }
+        if (password.isEmpty()) {
+            throw new SQLException("Database password is not configured. Set DB_PASSWORD or configure db.properties.");
         }
         return DriverManager.getConnection(getBaseServerUrl(), user, password);
     }
