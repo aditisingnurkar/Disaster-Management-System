@@ -8,7 +8,7 @@ public class DatabaseConnection {
     private static int port = 3306;
     private static String dbName = "disaster_management";
     private static String user = "root";
-    private static String password = "Visharad16";
+    private static String password = "<YOUR PASSWORD>";
 
     private static final String CONFIG_FILE = "db.properties";
 
