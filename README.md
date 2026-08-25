@@ -1,6 +1,6 @@
-# Disaster Management System (DBMS 3NF Project)
+# Disaster Management System
 
-A complete, normalized **3NF Relational Database Management System** for disaster coordination, emergency shelters, supply logistics, victim registration, volunteer mobilization, and field incident logging.
+A complete, normalized **Relational Database Management System** for disaster coordination, emergency shelters, supply logistics, victim registration, volunteer mobilization, and field incident logging.
 
 ## 1. Project Structure
 
