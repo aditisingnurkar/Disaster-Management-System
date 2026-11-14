@@ -115,17 +115,5 @@ $sources = Get-ChildItem src/main/java -Recurse -Filter *.java
 javac -cp ".;lib/mysql-connector-j-9.4.0.jar" -d target/classes $sources.FullName
 java -cp "target/classes;lib/mysql-connector-j-9.4.0.jar" TestConnection
 ```
-
----
-
-## 4. Key DBMS Features for Viva Presentation
-
-- **Live SQL Dashboard Metrics:** Total Disasters, Victims, Shelters, Volunteers, Inventory Stock, and Open Incidents are computed directly using `COUNT()`, `SUM()`, and `GROUP BY` queries in MySQL.
-- **Interactive DBMS Query Runner (`DBMSQueryRunnerUI`):** Demonstrates 10+ preset SQL queries (Multi-table 3NF JOINs, Subqueries, Group By with Having, Aggregations) during your project presentation.
-- **Foreign Key Dropdowns (`JComboBox<ComboItem>`):** Ensures users select existing entities without typing raw IDs.
-- **Business Rule Enforcement:** Incident reports validate volunteer assignment to the selected disaster.
-- **Complete SQL Script Files:**
-  - `database/schema.sql` (Full DDL with constraints and indexes)
-  - `database/seed.sql` (Realistic sample data)
   - `database/queries.sql` (25+ demonstration queries)
    - `database/normalization_and_viva_guide.md` (Detailed 1NF → 2NF → 3NF breakdown and Viva Q&A)
