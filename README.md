@@ -116,4 +116,3 @@ javac -cp ".;lib/mysql-connector-j-9.4.0.jar" -d target/classes $sources.FullNam
 java -cp "target/classes;lib/mysql-connector-j-9.4.0.jar" TestConnection
 ```
   - `database/queries.sql` (25+ demonstration queries)
-   - `database/normalization_and_viva_guide.md` (Detailed 1NF → 2NF → 3NF breakdown and Viva Q&A)
